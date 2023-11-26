@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <title>Veure dades {{ num_page }}</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Estilos y js -->
+    <!-- <link rel="stylesheet" href="static/css/styles2.css"> -->
+    <link href="{{ url_for('static', path='/css/styles.css') }}" rel="stylesheet">
+    
+</head>
+<body>
+    <h1>Visualització d'usuaris</h1>
+    <p id="status_message" style="display: flex;"></p>
+    <table class="taula_usuarios" id="tabla_de_clientes">
+        <thead>
+            <tr>
+              <th>Nom<div class="resize-handle"></div></th>
+              <th>Cognoms<div class="resize-handle"></div></th>
+              <th>Numero de telèfon<div class="resize-handle"></div></th>
+              <th>Codi Postal<div class="resize-handle"></div></th>
+              <th>Url Registre<div class="resize-handle"></div></th>
+              <th>Altra Informació<div class="resize-handle"></div></th>
+              <th>Estat<div class="resize-handle"></div></th>
+              <th>Resposta<div class="resize-handle"></div></th>
+              <th><input type="text" value="{{ nombre_columna_reservada }}" id="nombre_columna_reservada" class="editable2"><div class="resize-handle"></div></input></th>
+              <!-- <th>{{ nombre_columna_reservada }}<div class="resize-handle"></div></th> -->
+            </tr>
+        </thead>
+        <tfoot>
+            <tr>
+              <td colspan="9"> <!--   cada vez que se agrege o quite una columna, hay que modificar el colspan, importante -->
+               <!-- Inside your HTML body where you want the pagination buttons to appear -->
+                <div class="footer-container">
+                  <div id="pagination" class="links">
+                      <!-- Pagination buttons will be dynamically inserted here -->
+                  </div>
+                  <div class="boton_descargar">
+                      <a href="#" id="guardar_cambios" onclick="guardar_cambios()">Guardar Canvis</a>
+                      <a href="http://{{ server_ip }}/descargar_tabla" download="tabla_clientes.xlsx" id="descargar_tabla">Descarregar la taula</a>
+                     
+                  </div>
+                  
+                </div>
+
+                
+              </td>
+            </tr>
+          </tfoot>
+          <tbody>
+        <tbody id="tbody_usuarios">
+          <tr>
+            
+              <!-- aquí dentro va la tabla personalizada -->
+          </tr>
+        </tbody>
+
+            
+        
+    </table>
+    <script src="{{ url_for('static', path='/js/js1.js') }}"></script>
+    <!-- <script src="static/js/js1.js"></script> -->
+</body>
+</html>

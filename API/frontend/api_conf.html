@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Configuración de API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            color: #333;
+        }
+        .container {
+            width: 60%;
+            margin: 20px auto;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            color: #0056b3;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 5px;
+        }
+        .section {
+            background-color: #eef3f7;
+            border: 1px solid #ccc;
+            padding: 15px;
+            margin-top: 10px;
+        }
+        .config-item {
+            margin-top: 10px;
+        }
+        input[type="text"], input[type="password"], input[type="number"], input[type="email"] {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: transparent;
+        }
+        button {
+            background-color: #0056b3;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        button:hover {
+            background-color: #004494;
+        }
+        .crear_token {
+        box-shadow:inset 0px 1px 3px 0px #91b8b3;
+        background:linear-gradient(to bottom, #768d87 5%, #6c7c7c 100%);
+        background-color:#768d87;
+        border-radius:5px;
+        border:1px solid #566963;
+        display:inline-block;
+        cursor:pointer;
+        color:#ffffff;
+        font-family:Arial;
+        font-size:15px;
+        font-weight:bold;
+        padding:11px 23px;
+        text-decoration:none;
+        text-shadow:0px -1px 0px #2b665e;
+    }
+    .crear_token:hover {
+        background:linear-gradient(to bottom, #6c7c7c 5%, #768d87 100%);
+        background-color:#6c7c7c;
+    }
+    .crear_token:active {
+        position:relative;
+        top:1px;
+    }
+    </style>
+
+</head>
+<body>
+    <!-- OAuth2 login from -->
+
+
+    <div class="container">
+        <h2>Configuración de la API</h2>
+        <form id="myForm">
+            <div class="section">
+                <h3>[DEFAULT]</h3>
+                <div class="config-item">
+                    <label for="apikey">Apikey:</label>
+                    <input type="text" id="apikey" name="apikey" value="{{ apikey }}">
+                </div>
+                <div class="config-item">
+                    <label for="host">Host:</label>
+                    <input type="text" id="host" name="host" value="{{ host }}">
+                </div>
+                <div class="config-item">
+                    <label for="port">Port:</label>
+                    <input type="number" id="port" name="port" value="{{ port }}">
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>[EMAIL]</h3>
+                <div class="config-item">
+                    <label for="email_sender">Email sender:</label>
+                    <input type="email" id="email_sender" name="email_sender" value="{{ email_sender }}">
+                </div>
+                <div class="config-item">
+                    <label for="app_password">App password:</label>
+                    <input type="password" id="app_password" name="app_password" value="{{ app_password }}">
+                </div>
+                <div class="config-item">
+                    <label for="email_reciver">Email Reciver:</label>
+                    <input type="email" id="email_reciver" name="email_reciver" value="{{ email_reciver }}">
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>[OTROS]</h3>
+                <div class="config-item">
+                    <label for="max_columnas_frontend">Número máximo de filas de la tabla de clientes:</label>
+                    <input type="number" id="max_columnas_frontend" name="max_columnas_frontend" value="{{ max_columnas_frontend }}">
+                </div>
+                <div class="config-item">
+                    <label for="nombre_columna_reservada">Nombre de la columna reservada:</label>
+                    <input type="text" id="nombre_columna_reservada" name="nombre_columna_reservada" value="{{ nombre_columna_reservada }}">
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>[OAUTH2]</h3>
+                <div class="config-item">
+                    <label for="username">Username:</label>
+                    <input type="text" id="username" name="username" value="{{ username }}">
+                </div>
+                <div class="config-item">
+                    <label for="password">Password:</label>
+                    <input type="password" id="password" name="password" value="{{ password }}">
+                </div>
+            </div>
+            
+            <div>
+                <p style="color:red" id="status_message"></p>
+                <button type="submit" id="buttonSubmit">Guardar Cambios</button>
+                <button class="crear_token">Crear token</button>
+            </div>
+            
+            <script src="{{ url_for('static', path='/js/js2.js') }}"></script>
+        </form>
+    </div>
+</body>
+</html> 

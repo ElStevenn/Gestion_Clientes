@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verificar usuario</title>
+<style>
+  body {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    padding: 2rem;
+    background-color: #f7f7f7;
+  }
+  .login-container {
+    max-width: 400px;
+    margin: 0 auto;
+    padding: 2rem;
+    background-color: #fff;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  }
+  .form-input {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #ddd;
+    box-sizing: border-box;
+  }
+  .login-button {
+    width: 100%;
+    padding: 10px;
+    border: none;
+    background-color: #5cb85c;
+    color: white;
+    cursor: pointer;
+  }
+  .login-button:hover {
+    background-color: #4cae4c;
+  }
+
+</style>
+<script src="{{ url_for('static', path='/js/js3.js') }}"></script>
+</head>
+<body>
+<div class="login-container">
+
+  <h1 style="font-size: 30px; text-align: center;">Verificar usuario</h1>
+
+  <form>
+
+    <label for="username">Usuario</label>
+    <input type="text" name="username" id="username" class="form-input" required>
+
+    <label for="password">Contraseña</label>
+    <input type="password" name="password" id="password"  class="form-input" required>
+    <button type="submit" class="login-button" id="button_login_submit">Verificar</button>
+    <br>
+    <p id="status_message"></p>
+
+  </form>
+
+</div>
+</body>
+</html>
