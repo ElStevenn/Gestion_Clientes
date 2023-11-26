@@ -1,0 +1,15 @@
+fastapi
+typing
+pydantic
+configparser
+uvicorn[standard]
+uuid
+pandas
+numpy
+jinja2
+websockets
+Faker
+python-multipart
+python-jose[cryptography]
+passlib[bcrypt]
+pycryptodomex
