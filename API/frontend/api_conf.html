@@ -127,7 +127,13 @@
                     <label for="nombre_columna_reservada">Nombre de la columna reservada:</label>
                     <input type="text" id="nombre_columna_reservada" name="nombre_columna_reservada" value="{{ nombre_columna_reservada }}">
                 </div>
+                <div class="config-item">
+                    <label for="spreadsheetID">ID del spreadsheet:</label>
+                    <input type="text" id="spreadsheetID" name="spreadsheetID" value="{{ spreadsheetID }}">
+                </div>
             </div>
+
+          
 
             <div class="section">
                 <h3>[OAUTH2]</h3>
@@ -146,6 +152,8 @@
                 <button type="submit" id="buttonSubmit">Guardar Cambios</button>
                 <button class="crear_token">Crear token</button>
             </div>
+
+
             
             <script src="{{ url_for('static', path='/js/js2.js') }}"></script>
         </form>

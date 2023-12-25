@@ -7,24 +7,27 @@ from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse, File
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.security import OAuth2PasswordRequestForm
-from fastapi_sessions.session_verifier import SessionVerifier
+# from fastapi_sessions.session_verifier import SessionVerifier
 from fastapi.logger import logger
 from starlette.websockets import WebSocketDisconnect
-from app import schemas, dependencies, email_sender, email_estructure, datasets_manager, documentation_others, security, sessions
-from typing import Optional, Annotated
+from app import schemas, dependencies, email_sender, email_estructure, datasets_manager, documentation_others, security, google_sheet_imp
+from app.security import aes_encrypter # Encrypter
+from fastapi_redis_session import deleteSession, getSession, getSessionId, getSessionStorage, setSession, SessionStorage
+from typing import Optional, Annotated, Any
 from configparser import ConfigParser
 import os, datetime
 import uvicorn
 from uuid import uuid4
 from uuid import UUID
 from pathlib import Path
-
+import google_auth_oauthlib.flow
 
 app = FastAPI(
     title="API Gestión de Prospectos i Comunicaciónes Empresariales",
     summary = "",
     description="\nEstá API diseñada para optimizar la interacción con clientes potenciales y la comunicación empresarial. Funciona recibiendo datos desde una fuente externa, gestionando estos inputs para identificar clientes con potencial. A continuación, automatiza el envío de correos electrónicos a estos clientes, facilitando un seguimiento efectivo. Paralelamente, la API permite a la empresa responder rápidamente sobre el interés en un cliente, verificar la precisión de los datos o actualizar información relevante. Esta interfaz API es una herramienta clave para empresas que buscan mejorar su gestión de relaciones con clientes y optimizar las comunicaciones comerciales.",
-    version="0.1"
+    version="0.1",
+    docs_url="/docs_00"
 )
 
 # Configuración de rutas y directorios
@@ -47,17 +50,26 @@ dataset_manager = datasets_manager.DTManage_manager() # Dataset para gestionar l
 email_structure = email_estructure.ClienteEmailFormatter() # Formatear el texto
 _email_sender = email_sender.EmailSender("./conf.ini") # Classe para eviar emails 
 
+# aes_encrypter = security.AESEncryptionW_256(Path("app/keys/key_admin.txt")) # Classe para encriptar y desencriptar con AES 256
+
+# Google spreadsheet
+google_spreadsheet = google_sheet_imp.Document_CRUD()
+google_spreadsheet.Spreadsheet_ID = config['GOOGLE-SHEET']['spreadsheet_id']
+
 # Define cores
 origins = [
     "http://localhost",
     "http://localhost:3000",
     "http://127.0.0.1",
     "http://127.0.0.1:3000",
+    "http://paumateu.top",
+    "http://inutil.top/",
+    "http://185.254.206.129/"
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Luego si quiero puedo especificar los orígenes exactos en la production.
+    allow_origins=origins,  # Luego si quiero puedo especificar los orígenes exactos en la production.
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -69,16 +81,16 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 logger.info("This log message will always show up.")
 
+
 # ----------------------------- Gestión de excepciones y Validaciones -------------------------------------
 
 @app.exception_handler(RequestValidationError)
-async def vadilation_exception_handler(request, exc: RequestValidationError):
+async def vadilation_exception_handler(request: Request, exc: RequestValidationError):
     """Manejar excepciones para RequestValidationError."""
     return JSONResponse(
         status_code=422,
         content={"detail": exc.errors(), "body": exc.body}
     )
-
 
 # ----------------------------- Distintas solicitudes de la API -----------------------------
 
@@ -180,66 +192,79 @@ async def download_table(filename: Optional[str] = "Tabla_clientes.xlsx" ,api_ke
 
 @app.get("/apiconf", response_class=HTMLResponse, description="Pequeño panel html para configurar la API (hacer si me da tiempo)") # response_class=HTMLResponse, 
 async def api_conf(request: Request):
+    
+    # Poner aquí la redirección en vez de en el frontend
 
     return templates.TemplateResponse(
         'api_conf.html', {
             'request': request, 'apikey':api_key, 'email_sender': config['EMAIL']['email_sender'], 'host':host, 'port': port,'app_password':config['EMAIL']['app_password'],
             'email_reciver':config['EMAIL']['email_reciver'], 'max_columnas_frontend': config['OTROS']['max_columnas_frontend'], 'nombre_columna_reservada': config['OTROS']['nombre_columna_reservada'],
-            'username': config['API-OAUTH2']['username'], 'password': config['API-OAUTH2']['password']
+            'username': config['API-OAUTH2']['username'], 'password': config['API-OAUTH2']['password'], 'spreadsheetID': config['GOOGLE-SHEET']['spreadsheet_id']
             }
         )
 
-@app.post("/create_session")
-async def create_session(body_request: schemas.UserLoginBasicBody, response: Response):
+@app.post("/login")
+async def login(request_body:schemas.UserBody ,api_key = str(Depends(dependencies.get_api_key))):
+    # Autenticate user
 
-    # Verify body_request
-    verification_result = await check_username(body_request)
-    if verification_result['response'] == "failed":
-        return {"status":"failed", "response": verification_result['message']}
+
+    # Autenticate useer and password:
+    authenticated_user = await check_username(request_body)
+    if authenticated_user['status'] == 'failed':
+        return {"status":"failed", "message": authenticated_user['message']}
+
+
+    # session_boddy = schemas.SessionBoddy(
+    #     session_id=uuid4(),
+    #     username=request_body.username
+    # )
+    # session_response = await set(session_boddy=session_boddy)
+
+    return {"status":"sucsess","message": "Session has been created succesfuluy"}
+
+@app.post("/get-session", description="Obtener la session actual")
+async def get(session: Any = Depends(getSession)):
+    return session
+
+
+@app.post("/set-session", description="Crear una nueva session")
+async def set(request: Request, response: Response, sessionStorage: SessionStorage = Depends(getSessionStorage)):
+    sessionData = await request.json()
+    sessionId = setSession(response, sessionData, sessionStorage)
     
-    # Create session
-    # session = uuid4()
-    # data = schemas.SessionData(username=body_request.username, token=security.create_acces_token(data={"username":body_request.username, "password":body_request.password})) 
+    response.set_cookie(key="session_id", value=sessionId, httponly=True, secure=False, samesite='Lax')
+    return {"session": f"{sessionData}", "message":f"session has been created succesfully", "session_id":sessionId}
 
-    
-    # await sessions.backend.create(session, data=data)
-    # sessions.cookie.attach_to_response(response, session)
 
-    return {"status":"sucsess","response":f"created session for {body_request.username}"}
-
-@app.get("/whoami", dependencies=[Depends(sessions.cookie)], description="Devuelve los datos de session sobre cuál sessione está el usuario")
-async def whoami(session_data: schemas.SessionData = Depends(sessions.verifier)):
-    return {"response":session_data}
-
-@app.post("/delete_session")
-async def delete_session(response: Response, session_id: UUID = Depends(sessions.cookie)):
-    await sessions.backend.delete(session_id)
-    sessions.cookie.delete_from_response(response)
-    return {"response":"deleted session"}
+@app.get("/expire-session", description="")
+async def get(sessionId: str = Depends(getSessionId), sessionStorage: SessionStorage = Depends(getSessionStorage)):
+    deleteSession(sessionId, sessionStorage)
+    return None
 
 @app.get("/api_conf_login", response_class=HTMLResponse, description="Verificacion del usuario para acceder a la apiconf")
 async def api_conf_login(request: Request, redirect: Optional[str] = None):
     
     return templates.TemplateResponse('client_verify.html', {'request': request, 'redirect':redirect})
 
-@app.post("/check_username", description="Método interno para verificar si el usuario es correcto")
-async def check_username(body_request: schemas.UserLoginBasicBody, api_key=str(Depends(dependencies.get_api_key))):
+@app.post("/check_username", description="Método interno para verificar si el usuario es correcto y existe")
+async def check_username(body_request: schemas.UserBody, api_key=str(Depends(dependencies.get_api_key))):
 
-
-    # Check if body_reuest.username exists into the fake database (in the future i'll use a real database but now i don't have enough time)
+    # if isinstance(api_key, dependencies.get_api_key):
+    #     return HTTPException(404, detail="You haven't provided any apikey")
+    
+    # Check if user exists or if is diabled
     user = security.get_user_db(security.fake_users_db2, body_request.username)
-    if not user or user.disabled:
-        return {"response":"failed", "message": f"User \"{body_request.username}\" doesn't exists or is inactive"}
+    if not user:
+        return {"status":"failed", "message": f"User \"{body_request.username}\" doesn't exists"}
+    if user.disabled:
+        return {"status":"failed", "message": f"Uses \"{body_request.username}\" is diabled"}
 
-    # In the future check if token is valid, because it's likely the token could be expired
+    # Check if password is correct
+    if  user.password.decode('utf-8')  != body_request.password:
+        return {"status":"failed", "message": "Incorrect password"}
 
 
-    # Check if password is correct through its token and if valid
-    decoded_password = security.decode_token(user.hashed_password)
-    if decoded_password['password'] != body_request.password:
-        return {"response":"failed", "message": f"Password it's incorrect!"}
-
-    return {"response":"succes", "message": f"User {body_request.username} has been verified sucessfully"}
+    return {"status":"succes", "message": f"User {body_request.username} is avariable","apikey_provided": api_key}
 
 
 @app.post("/api_set_conf", description="Metodo interno para aplicar la configuración")
@@ -266,6 +291,8 @@ async def set_api_cong(request: schemas.ApiConf, api_key=str(Depends(dependencie
         config['API-OAUTH2']['username'] = request.username
         config['API-OAUTH2']['password'] = request.password
 
+        config['GOOGLE-SHEET']['spreadsheed_id'] = request.spreadsheetID
+
         # Actualizar registros
         with open(Path('conf.ini'), 'w') as configfile:
             config.write(configfile)
@@ -291,27 +318,33 @@ async def webdocket_endpoint(websocket: WebSocket):
         print(f"Client disconnected with code: {e.code}")
 
 
-@app.websocket("/wp_apiconf")
-async def websocket_apiconf_endpoint(websocket: WebSocket):
-    """Websocket para enviar los datos de configuración21"""
-    await websocket.accept()
-    try:
-        while True:
-            data_response = await websocket.receive_text() # En principio recivirá un texto de confirmación de aceptación del socket
-
-            if data_response == 'get_apiconf':
-                json_data_response = {
-                    'apikey':api_key, 'email_sender': config['EMAIL']['email_sender'], 'host':host, 'port': port,'app_password':config['EMAIL']['app_password'],
-                    'email_reciver':config['EMAIL']['email_reciver'], 'max_columnas_frontend': config['OTROS']['max_columnas_frontend'], 'nombre_columna_reservada': config['OTROS']['nombre_columna_reservada'],
-                    'username': config['API-OAUTH2']['username'], 'password': config['API-OAUTH2']['password']
-                }
-
-                await websocket.send_json(json_data_response)
-
-    except WebSocketDisconnect as e:
-        print(f"Client apiconf disconected with code: {e.code}")
-
 # ------------------- OAuth2 Autentication ----------------------------------------------------------------
+
+@app.get("/code", description="Redirect URI for API authentication", tags="OAuth2")
+async def redirect_uri(request: Request):
+ # Extract the authorization code from the request
+    code = request.query_params.get('code')
+
+    if code:
+        # Create the flow using the client secret file and the same scopes as before
+        flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
+            'client_secret.json',
+            scopes=['https://www.googleapis.com/auth/spreadsheets'],
+            redirect_uri='https://www.example.com/code')  # Your actual redirect URI
+
+        # Fetch the token using the code
+        flow.fetch_token(code=code)
+
+        # Here you can save the credentials for later use
+        credentials = flow.credentials
+        # You can save these credentials or use them directly to access Google APIs
+
+        # Redirect or respond as necessary
+        return {"message": "Authentication successful"}
+
+    else:
+        # Handle the case where there is no code in the query string
+        return {"error": "No authorization code provided"}
 
 
 async def get_current_user(token: str = Depends(dependencies.oauth2_scheme)):
@@ -341,27 +374,28 @@ async def get_current_active_user(
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
 
-@app.post("/token", description="Token endpoint for user authentication")
-async def login(from_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
-    user = security.get_user_db(security.fake_users_db2, from_data.username)
+# @app.post("/token", description="Token endpoint for user authentication")
+# async def token_create(from_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
+#     user = security.get_user_db(security.fake_users_db2, from_data.username)
 
-    if not user:
-        raise HTTPException(status_code=400, detail=f"Incorrect username or password")
+#     if not user:
+#         raise HTTPException(status_code=400, detail=f"Incorrect username or password")
     
-    user_val =  security.verify_password(from_data.password, user.hashed_password)
-    if not user_val:
-        raise HTTPException(status_code=400, detail=f"Incorrect username or password")
-    # Generate a token (to be replaced with a real JWT or similar token)
-    token = security.create_acces_token(data={"sub":user.username}, expire_delta=datetime.timedelta(days=30)) # At this moment, the token will expires in 30 days
+#     user_val = await check_username(from_data)
+#     if user_val['status'] == 'failed':
+#         raise HTTPException(status_code=400, detail=user_val['message'])
+    
+#     # Generate a token (to be replaced with a real JWT or similar token)
+#     token = security.create_acces_token(data={"sub":user.username}, expire_delta=datetime.timedelta(days=30)) # At this moment, the token will expires in 30 days
 
-    return {"acces_token": token, "token_type": "bearer"}
+#     return {"acces_token": token, "token_type": "bearer"}
  
 
-@app.get("/users/me", description="add description here abot what this functiondoes")
-async def read_ysers_me(
-    current_user: Annotated[security.User, Depends(get_current_active_user)]
-):
-    return current_user
+# @app.get("/users/me", description="add description here abot what this functiondoes")
+# async def read_ysers_me(
+#     current_user: Annotated[security.User, Depends(get_current_active_user)]
+# ):
+#     return current_user
 
 
 

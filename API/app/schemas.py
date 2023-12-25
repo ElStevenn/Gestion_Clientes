@@ -5,6 +5,7 @@ from typing import Optional, Dict, List,  ClassVar
 from . import datasets_manager
 from configparser import ConfigParser
 from pathlib import Path
+from uuid import UUID
 
 class ClientBaseData(BaseModel):
 
@@ -51,11 +52,15 @@ class ApiConf(BaseModel):
     username: Optional[str] = config.get('API-OAUTH2', 'username', fallback=None)
     password: Optional[str] = config.get('API-OAUTH2', 'password', fallback=None)
 
-class SessionData(BaseModel):
-    # Data in the server's memory
+    spreadsheetID: Optional[str] = config.get('GOOGLE-SHEET','spreadsheet_id', fallback=False)
+
+
+class UsernameBasic(BaseModel):
     username: str
-    token: str = None
+
+class UserBody(UsernameBasic):
+    password: str
 
 
-class UserLoginBasicBody(SessionData): 
-    password: str # None encrypted password through this shema
+class SessionBoddy(UsernameBasic):
+    session_id: UUID

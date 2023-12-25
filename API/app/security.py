@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import os, re
-from jwt import decode, PyJWTError, encode
+from jwt import PyJWTError, encode, decode
 import datetime
 from typing import Any, Dict
 # from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -10,10 +10,57 @@ from struct import pack
 from passlib.context import CryptContext
 from pathlib import Path
 
+# Encryption part
 from cryptography.hazmat.primitives import padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
 import base64
+
+
+
+class AESEncryptionW_256:
+    """
+    
+    Encrption  class with Advanced Encryption Standard with 256 bits, created by Pau Mateu
+    -----------------------
+    Encrypt:
+    
+
+    
+
+    """
+    def __init__(self, key_path):
+
+        # The key has to be stored into a file
+        self.key =  open(key_path, 'rb').read()
+
+    def pad(self, data):
+        padder = padding.PKCS7(128).padder()
+        padded_data = padder.update(data) + padder.finalize()
+        return padded_data
+
+    def unpad(self, padded_data):
+        unpadder = padding.PKCS7(128).unpadder()
+        data = unpadder.update(padded_data) + unpadder.finalize()
+        return data
+
+    def encrypt(self, data):
+        iv = os.urandom(16)
+        padded_data = self.pad(data.encode())
+        cipher = Cipher(algorithms.AES(self.key), modes.CBC(iv), backend=default_backend())
+        encryptor = cipher.encryptor()
+        encrypted_data = encryptor.update(padded_data) + encryptor.finalize()
+        return iv + encrypted_data
+
+    def decrypt(self, encrypted_data):
+        iv = encrypted_data[:16]
+        encrypted_data = encrypted_data[16:]
+        cipher = Cipher(algorithms.AES(self.key), modes.CBC(iv), backend=default_backend())
+        decryptor = cipher.decryptor()
+        padded_data = decryptor.update(encrypted_data) + decryptor.finalize()
+        return self.unpad(padded_data)
+
+aes_encrypter = AESEncryptionW_256(Path('app/keys/key_admin.txt'))
 
 # Admin role is the unique user who can create users
 fake_users_db2 = {
@@ -22,7 +69,7 @@ fake_users_db2 = {
         "username":"admin_",
         "full_name":"Pau Mateu Esteve",
         "email":"paumat17@gmail.com",
-        "hashed_password": base64.b64encode(open(Path('keys/admin_password.txt'), 'rb').read()),
+        "password": aes_encrypter.decrypt(open(Path('app/keys/admin_password.txt'), 'rb').read()),
         "role":"admin",
         "tokens":[],
         "disabled": False
@@ -32,7 +79,7 @@ fake_users_db2 = {
         "username":"invited",
         "full_name":"Federico García Olca",
         "email":"federicogarcía@gmail.com",
-        "hashed_password":base64.b64encode(open(Path('keys/password_invited.txt'), 'rb').read()),
+        "password": aes_encrypter.decrypt(open(Path('app/keys/password_invited.txt'), 'rb').read()),
         "role":"user",
         "tokens":[],
         "disabled": False
@@ -42,7 +89,7 @@ fake_users_db2 = {
         "username":"federico",
         "full_name":"Federico García Parra",
         "email":"federicaparra@gmail.com",
-        "hashed_password": base64.b64encode(open(Path('keys/password_federico.txt'), 'rb').read()),
+        "password": aes_encrypter.decrypt(open(Path('app/keys/password_federico.txt'), 'rb').read()),
         "role": "contributor",
         "tokens": [],
         "disabled": True
@@ -52,7 +99,7 @@ fake_users_db2 = {
         "username":"paula",
         "full_name":"Paula Gómez Vonespié",
         "email":"paulera123@gmail.com",
-        "hashed_password": base64.b64encode(open(Path('keys/password_paula.txt'), 'rb').read()),
+        "password": aes_encrypter.decrypt(open(Path('app/keys/password_paula.txt'), 'rb').read()),
         "role":"user",
         "tokens": [],
         "disabled": False
@@ -62,7 +109,7 @@ fake_users_db2 = {
         "username":"susano",
         "full_name":"Susano Garría Olona",
         "email":"susanerista@gmailo.com",
-        "hashed_password": base64.b64encode(open(Path('keys/password_susano.txt'), 'rb').read()),
+        "password": aes_encrypter.decrypt(open(Path('app/keys/password_susano.txt'), 'rb').read()),
         "role":"user",
         "tokens": [],
         "disabled": False
@@ -77,7 +124,7 @@ class User(BaseModel):
     disabled: bool | None = None
 
 class UserInDB(User):
-    hashed_password: str
+    password: bytes
 
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -147,54 +194,25 @@ def create_acces_token(data: Dict[str, Any], expire_delta: datetime.timedelta = 
 
 
 
-class AESEncryptionW_256:
-    """
-    
-    Encrption  class with Advanced Encryption Standard with 256 bits, created by Pau Mateu
-    -----------------------
-    Encrypt:
-    
 
-    
-
-    """
-    def __init__(self, key):
-        self.key = key
-
-    def pad(self, data):
-        padder = padding.PKCS7(128).padder()
-        padded_data = padder.update(data) + padder.finalize()
-        return padded_data
-
-    def unpad(self, padded_data):
-        unpadder = padding.PKCS7(128).unpadder()
-        data = unpadder.update(padded_data) + unpadder.finalize()
-        return data
-
-    def encrypt(self, data):
-        iv = os.urandom(16)
-        padded_data = self.pad(data.encode())
-        cipher = Cipher(algorithms.AES(self.key), modes.CBC(iv), backend=default_backend())
-        encryptor = cipher.encryptor()
-        encrypted_data = encryptor.update(padded_data) + encryptor.finalize()
-        return iv + encrypted_data
-
-    def decrypt(self, encrypted_data):
-        iv = encrypted_data[:16]
-        encrypted_data = encrypted_data[16:]
-        cipher = Cipher(algorithms.AES(self.key), modes.CBC(iv), backend=default_backend())
-        decryptor = cipher.decryptor()
-        padded_data = decryptor.update(encrypted_data) + decryptor.finalize()
-        return self.unpad(padded_data)
         
 
 # stored_password = get_user_db(fake_users_db)
 
 if __name__ == "__main__":
-    # Read 32 byted key
-    key = open('keys/key_admin.txt', 'rb').read()
-    aes_encrypter = AESEncryptionW_256(key)
+    # Read 256 bites key
     
+    passowrd_provided = "123qweasd"
 
-    user = get_user_db(fake_users_db2, "federico")
-    print(user)
+    federico = get_user_db(fake_users_db2, 'invited')
+    # federico_password = federico.hashed_password
+
+    
+    print(federico)
+    federico_password = federico.password
+    print(federico_password.decode('utf-8'))
+    # decrypted_password = 
+    if federico_password.decode('utf-8') != passowrd_provided:
+        print("Password unmatch")
+    else:
+        print("Password match")
