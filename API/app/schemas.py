@@ -5,7 +5,10 @@ from typing import Optional, Dict, List,  ClassVar
 from . import datasets_manager
 from configparser import ConfigParser
 from pathlib import Path
+<<<<<<< HEAD
 from uuid import UUID
+=======
+>>>>>>> d6981f63b4066d5350a4a69c7248452b31c5d066
 
 class ClientBaseData(BaseModel):
 
@@ -52,6 +55,7 @@ class ApiConf(BaseModel):
     username: Optional[str] = config.get('API-OAUTH2', 'username', fallback=None)
     password: Optional[str] = config.get('API-OAUTH2', 'password', fallback=None)
 
+<<<<<<< HEAD
     spreadsheetID: Optional[str] = config.get('GOOGLE-SHEET','spreadsheet_id', fallback=False)
 
 
@@ -64,3 +68,13 @@ class UserBody(UsernameBasic):
 
 class SessionBoddy(UsernameBasic):
     session_id: UUID
+=======
+class SessionData(BaseModel):
+    # Data in the server's memory
+    username: str
+    token: str = None
+
+
+class UserLoginBasicBody(SessionData): 
+    password: str # None encrypted password through this shema
+>>>>>>> d6981f63b4066d5350a4a69c7248452b31c5d066

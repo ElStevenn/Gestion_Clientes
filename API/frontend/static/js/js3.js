@@ -2,7 +2,11 @@ console.log("Hello world!");
 let apikey = 'rmpxCixzGRet81UnltZUBLdURHhnJy4QSltELa6HjU8=';
 let ip = "185.254.206.129"; // Pau, you will need to change this
 
+<<<<<<< HEAD
 async function login(username, password) {
+=======
+async function createSession(username, password) {
+>>>>>>> d6981f63b4066d5350a4a69c7248452b31c5d066
     try {
         
         let body_request = {
@@ -10,7 +14,11 @@ async function login(username, password) {
             "password": password
         }
 
+<<<<<<< HEAD
         const response = await fetch(`http://${ip}/login`, {
+=======
+        const response = await fetch(`http://${ip}/create_session`, {
+>>>>>>> d6981f63b4066d5350a4a69c7248452b31c5d066
             method: 'POST',
             headers: {
                 "Content-Type": "application/json",
@@ -29,6 +37,7 @@ async function login(username, password) {
         return result;
 
     } catch (error) {
+<<<<<<< HEAD
         console.error("An error occurred with checkUsername: ", error);
     }
 }
@@ -136,3 +145,35 @@ async function main(){
 
 }
 main();
+=======
+        console.error("An error occurred with CreateSession: ", error);
+    }
+}
+
+
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('button_login_submit').addEventListener('click',async function(event) {
+        event.preventDefault();
+
+        let username = document.getElementById('username').value;
+        let password = document.getElementById('password').value;
+
+        const session = await createSession(username, password);
+;
+        if (session.status == "failed") {
+            // Handle error, in   this case notify the client that his password is worng
+            document.getElementById('status_message').textContent = session.response;
+            document.getElementById('status_message').style = "color: #ad0014;"
+
+        } else{
+            // Create cookie and store id in his navegator
+            console.log("*redirecting to /apiconf and creating a new session cookie.In theory the createSessionhas to be that*")
+            
+
+        }
+
+
+    });
+});
+>>>>>>> d6981f63b4066d5350a4a69c7248452b31c5d066

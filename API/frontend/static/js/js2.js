@@ -24,7 +24,10 @@ function get_all_data_from_html(){
     let username = document.getElementById('username').value;
     let password = document.getElementById('password').value;
 
+<<<<<<< HEAD
     let spreadsheetID = document.getElementById('spreadsheetID').value;
+=======
+>>>>>>> d6981f63b4066d5350a4a69c7248452b31c5d066
 
     // Handle possible issues
     if (password.length < 9) {
@@ -45,7 +48,11 @@ function get_all_data_from_html(){
         "status":"sucsess", "result":{
             "apikey":apikey, "host":host, "port":port, "email_sender":email_sender,
             "app_password": app_password, "email_reciver": email_reciver, "max_columns_frontend":max_columns_frontend,
+<<<<<<< HEAD
             "name_reserved_column": name_reserved_column, "username": username, "password": password, "spreadsheetID": spreadsheetID
+=======
+            "name_reserved_column": name_reserved_column, "username": username, "password": password
+>>>>>>> d6981f63b4066d5350a4a69c7248452b31c5d066
         }
     };
 }
@@ -84,8 +91,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 "max_columns_frontend": new_data_updated.max_columns_frontend,
                 "name_reserved_column": new_data_updated.name_reserved_column,
                 "username": new_data_updated.username,
+<<<<<<< HEAD
                 "password": new_data_updated.password,
                 "spreadsheetID":new_data_updated.spreadsheetID
+=======
+                "password": new_data_updated.password
+>>>>>>> d6981f63b4066d5350a4a69c7248452b31c5d066
               }
 
             // Url with apikey param
@@ -124,6 +135,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
+<<<<<<< HEAD
 /*
 async function whoAmi() {
     try{
@@ -132,6 +144,16 @@ async function whoAmi() {
         const data = await response.json();
             
         return data;
+=======
+
+async function whoAmi() {
+    try{
+        const response = await fetch('/whoami');
+        const data = await response.json();
+        console.log(data.response);
+            
+        return data.response;
+>>>>>>> d6981f63b4066d5350a4a69c7248452b31c5d066
 
     } catch(error) {
         console.error("An error ocurred with whoAmi: ", error)
@@ -181,7 +203,10 @@ async function manageSessions() {
 }
 
 manageSessions();
+<<<<<<< HEAD
 */
+=======
+>>>>>>> d6981f63b4066d5350a4a69c7248452b31c5d066
 // This part will be used to login Part, thefore do not delete please
 /*
 document.getElementById('loginForm').addEventListener('submit', function(event) {

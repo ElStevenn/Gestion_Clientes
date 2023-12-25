@@ -8,6 +8,7 @@ pandas
 numpy
 jinja2
 websockets
+<<<<<<< HEAD
 PyJWT
 jwt==1.3.1
 python-multipart
@@ -16,3 +17,10 @@ passlib[bcrypt]
 pycryptodomex
 redis
 fastapi-redis-session
+=======
+Faker
+python-multipart
+python-jose[cryptography]
+passlib[bcrypt]
+pycryptodomex
+>>>>>>> d6981f63b4066d5350a4a69c7248452b31c5d066
