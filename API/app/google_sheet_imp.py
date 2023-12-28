@@ -7,6 +7,8 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from pathlib import Path
 import os.path
 import re
+import numpy as np
+import pandas as pd
 
 # Get credentials from this file
 credentials_file = "/home/ubuntu/certificates/google_cloud_credentials/credentials.json"
@@ -99,42 +101,60 @@ class Document_CRUD():
             return error
     
 
-    def update_border_request(self, sheet_id, start_row_index, end_row_index, startColumnIndex, endColumnIndex, border_style = { "style": "SOLID", "width": 1, "color": {"red": 0, "green": 0, "blue": 0, "alpha": 1} }):
+    def update_border_request(self, sheet_id, start_row_index, end_row_index, start_column_index, end_column_index, 
+                                    border_style=None, new_title=None):
+        if border_style is None:
+            border_style = {"style": "SOLID", "width": 1, "color": {"red": 0, "green": 0, "blue": 0, "alpha": 1}}
+
         service = self.auth()
 
-        # Border request
-        try:
-            border_requests = {
-                "requests": [{
-                    "updateBorders": {
-                        "range": {
-                            "sheetId": sheet_id,
-                            "startRowIndex": start_row_index,
-                            "endRowIndex": end_row_index,
-                            "startColumnIndex": startColumnIndex,  # Adjust if needed
-                            "endColumnIndex": endColumnIndex     # Adjust if needed
-                        },
-                        "top": border_style,
-                        "bottom": border_style,
-                        "left": border_style,
-                        "right": border_style,
-                        "innerHorizontal": border_style,
-                        "innerVertical": border_style
-                    }
-                }]
-            }
+        # Initialize requests list
+        requests = []
 
-            # Update borders
-            border_result = service.spreadsheets().batchUpdate(
-                    spreadsheetId=self.Spreadsheet_ID, 
-                    body=border_requests
-                ).execute()
-       
-            return border_result
+        # Adding border update request
+        border_request = {
+            "updateBorders": {
+                "range": {
+                    "sheetId": sheet_id,
+                    "startRowIndex": start_row_index,
+                    "endRowIndex": end_row_index,
+                    "startColumnIndex": start_column_index,
+                    "endColumnIndex": end_column_index
+                },
+                "top": border_style,
+                "bottom": border_style,
+                "left": border_style,
+                "right": border_style,
+                "innerHorizontal": border_style,
+                "innerVertical": border_style
+            }
+        }
+        requests.append(border_request)
+
+        # Adding spreadsheet properties update request, if a new title is provided
+        if new_title:
+            properties_request = {
+                "updateSpreadsheetProperties": {
+                    "properties": {
+                        "title": new_title
+                    },
+                    "fields": "title"
+                }
+            }
+            requests.append(properties_request)
+
+        # Sending the batch update request
+        try:
+            result = service.spreadsheets().batchUpdate(
+                spreadsheetId=self.Spreadsheet_ID, 
+                body={"requests": requests}
+            ).execute()
+
+            return result
         except HttpError as error:
             print(f"An error occurred: {error}")
             return error
-
+        
     def extract_row_index(self, range_string):
         # Pattern to match the row number in the range string (e.g., '5' in 'Sheet1!A5:Z5')
         match = re.search(r'(\d+)', range_string.split('!')[1])
@@ -143,12 +163,58 @@ class Document_CRUD():
         else:
             return 0  # Default to 0 if no match is found
         
+    def read_excel(self, range_name, enum=False) -> np.ndarray:
+        """Read the range and return enumerated if requested, excluding the header."""
+        try:
+            service = self.auth()            
+
+
+            result = (
+                service.spreadsheets().values()
+                .get(spreadsheetId=self.Spreadsheet_ID, range=range_name)
+                .execute()
+            )
+
+            pre_result = result.get('values', None)
+            
+            # Check if pre_result is None and return an empty array if so
+            if pre_result is None:
+                return np.array([])
+
+            array_res = np.array(pre_result)
+
+            if enum:
+                n_rows = array_res.shape[0]
+                n_cols = array_res.shape[1] if len(array_res.shape) > 1 else 0
+                result_ = np.empty((n_rows, n_cols + 1), dtype=object)
+
+                for i in range(n_rows):
+                    result_[i, 0] = str(i)
+                    result_[i, 1:] = array_res[i]
+
+                return result_
+            return array_res
+
+        except HttpError as error:
+            print(f"An error occurred: {error}")
+            return error
 
 if __name__ == "__main__":
+
+
     SheetCRUD = Document_CRUD()
     SheetCRUD.Spreadsheet_ID = "1kpj7e08JrhsH4WKJhQeIYXWUh4k4Nc4vKSd-DuZqpVw"
-    # SheetCRUD.auth()
+
+    range_name = "C19:K9999999"
+    result = SheetCRUD.read_excel(range_name, True)
+    print(result)
+    print(result.shape)
+    
+
+    
+    # SheetCRUD.Spreadsheet_ID = "1kpj7e08JrhsH4WKJhQeIYXWUh4k4Nc4vKSd-DuZqpVw"
+    # # SheetCRUD.auth()
     valueInputOption = "USER_ENTERED"
     range_name = "C19:K10"
-    values = [["Pepero","García Olona","+34 640523319","08901","https://url.com","Mide más de 1.80","Solucionado","Vendido correctamente",""]]
-    SheetCRUD.append(range_name, valueInputOption, values)
+    # values = [["Pepero","García Olona","+34 640523319","08901","https://url.com","Mide más de 1.80","Solucionado","Vendido correctamente",""]]
+    # SheetCRUD.append(range_name, valueInputOption, final.tolist())

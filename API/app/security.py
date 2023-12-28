@@ -1,29 +1,18 @@
 #!/usr/bin/env python3
 
 import os, re
-<<<<<<< HEAD
-from jwt import PyJWTError, encode, decode
-=======
 from jwt import decode, PyJWTError, encode
->>>>>>> d6981f63b4066d5350a4a69c7248452b31c5d066
 import datetime
 from typing import Any, Dict
-# from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
 from struct import pack
 from passlib.context import CryptContext
 from pathlib import Path
 
-<<<<<<< HEAD
-# Encryption part
-=======
->>>>>>> d6981f63b4066d5350a4a69c7248452b31c5d066
 from cryptography.hazmat.primitives import padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
 import base64
-
-<<<<<<< HEAD
 
 
 class AESEncryptionW_256:
@@ -70,8 +59,6 @@ class AESEncryptionW_256:
 
 aes_encrypter = AESEncryptionW_256(Path('app/keys/key_admin.txt'))
 
-=======
->>>>>>> d6981f63b4066d5350a4a69c7248452b31c5d066
 # Admin role is the unique user who can create users
 fake_users_db2 = {
     "admin_":{
@@ -79,11 +66,10 @@ fake_users_db2 = {
         "username":"admin_",
         "full_name":"Pau Mateu Esteve",
         "email":"paumat17@gmail.com",
-<<<<<<< HEAD
+
         "password": aes_encrypter.decrypt(open(Path('app/keys/admin_password.txt'), 'rb').read()),
-=======
-        "hashed_password": base64.b64encode(open(Path('keys/admin_password.txt'), 'rb').read()),
->>>>>>> d6981f63b4066d5350a4a69c7248452b31c5d066
+        "hashed_password": base64.b64encode(open(Path('app/keys/admin_password.txt'), 'rb').read()),
+
         "role":"admin",
         "tokens":[],
         "disabled": False
@@ -93,11 +79,9 @@ fake_users_db2 = {
         "username":"invited",
         "full_name":"Federico García Olca",
         "email":"federicogarcía@gmail.com",
-<<<<<<< HEAD
         "password": aes_encrypter.decrypt(open(Path('app/keys/password_invited.txt'), 'rb').read()),
-=======
-        "hashed_password":base64.b64encode(open(Path('keys/password_invited.txt'), 'rb').read()),
->>>>>>> d6981f63b4066d5350a4a69c7248452b31c5d066
+        "hashed_password":base64.b64encode(open(Path('app/keys/password_invited.txt'), 'rb').read()),
+
         "role":"user",
         "tokens":[],
         "disabled": False
@@ -107,11 +91,10 @@ fake_users_db2 = {
         "username":"federico",
         "full_name":"Federico García Parra",
         "email":"federicaparra@gmail.com",
-<<<<<<< HEAD
+
         "password": aes_encrypter.decrypt(open(Path('app/keys/password_federico.txt'), 'rb').read()),
-=======
-        "hashed_password": base64.b64encode(open(Path('keys/password_federico.txt'), 'rb').read()),
->>>>>>> d6981f63b4066d5350a4a69c7248452b31c5d066
+        "hashed_password": base64.b64encode(open(Path('app/keys/password_federico.txt'), 'rb').read()),
+
         "role": "contributor",
         "tokens": [],
         "disabled": True
@@ -121,11 +104,10 @@ fake_users_db2 = {
         "username":"paula",
         "full_name":"Paula Gómez Vonespié",
         "email":"paulera123@gmail.com",
-<<<<<<< HEAD
+
         "password": aes_encrypter.decrypt(open(Path('app/keys/password_paula.txt'), 'rb').read()),
-=======
-        "hashed_password": base64.b64encode(open(Path('keys/password_paula.txt'), 'rb').read()),
->>>>>>> d6981f63b4066d5350a4a69c7248452b31c5d066
+        "hashed_password": base64.b64encode(open(Path('app/keys/password_paula.txt'), 'rb').read()),
+
         "role":"user",
         "tokens": [],
         "disabled": False
@@ -135,11 +117,9 @@ fake_users_db2 = {
         "username":"susano",
         "full_name":"Susano Garría Olona",
         "email":"susanerista@gmailo.com",
-<<<<<<< HEAD
+
         "password": aes_encrypter.decrypt(open(Path('app/keys/password_susano.txt'), 'rb').read()),
-=======
-        "hashed_password": base64.b64encode(open(Path('keys/password_susano.txt'), 'rb').read()),
->>>>>>> d6981f63b4066d5350a4a69c7248452b31c5d066
+        "hashed_password": base64.b64encode(open(Path('app/keys/password_susano.txt'), 'rb').read()),
         "role":"user",
         "tokens": [],
         "disabled": False
@@ -154,11 +134,8 @@ class User(BaseModel):
     disabled: bool | None = None
 
 class UserInDB(User):
-<<<<<<< HEAD
     password: bytes
-=======
-    hashed_password: str
->>>>>>> d6981f63b4066d5350a4a69c7248452b31c5d066
+
 
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -228,9 +205,7 @@ def create_acces_token(data: Dict[str, Any], expire_delta: datetime.timedelta = 
 
 
 
-<<<<<<< HEAD
 
-=======
 class AESEncryptionW_256:
     """
     
@@ -270,13 +245,12 @@ class AESEncryptionW_256:
         decryptor = cipher.decryptor()
         padded_data = decryptor.update(encrypted_data) + decryptor.finalize()
         return self.unpad(padded_data)
->>>>>>> d6981f63b4066d5350a4a69c7248452b31c5d066
         
 
 # stored_password = get_user_db(fake_users_db)
 
 if __name__ == "__main__":
-<<<<<<< HEAD
+
     # Read 256 bites key
     
     passowrd_provided = "123qweasd"
@@ -293,7 +267,7 @@ if __name__ == "__main__":
         print("Password unmatch")
     else:
         print("Password match")
-=======
+
     # Read 32 byted key
     key = open('keys/key_admin.txt', 'rb').read()
     aes_encrypter = AESEncryptionW_256(key)
@@ -301,4 +275,4 @@ if __name__ == "__main__":
 
     user = get_user_db(fake_users_db2, "federico")
     print(user)
->>>>>>> d6981f63b4066d5350a4a69c7248452b31c5d066
+

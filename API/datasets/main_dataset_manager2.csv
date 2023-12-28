@@ -1,0 +1,57 @@
+Nombre,Apellidos,Numero Telefono,Codigo Postal,Url Registro,Otra Información,Estado,Respuesta,Columna Reservada
+0,Doris,Todd Levy,#ERROR!,47551,https://ejemplo.com/registro/46,*información adicional*,Actiu,Cuelga/no colabora
+1,Curtis,Craig Brown,#ERROR!,80584,https://ejemplo.com/registro/83,*información adicional*,Actiu,No contesta
+2,Chelsea,Peggy Wiley,#ERROR!,55234,https://ejemplo.com/registro/30,*información adicional*,Fallit,No contesta
+3,Anthony,Carol Thompson,#ERROR!,15775,https://ejemplo.com/registro/3,*información adicional*,Pendent,Cuelga/no colabora
+4,Megan,Donna Payne,#ERROR!,23007,https://ejemplo.com/registro/81,*información adicional*,Pendent,Volver a llamar
+5,Jason,Hailey Taylor,#ERROR!,60589,https://ejemplo.com/registro/14,*información adicional*,Fallit,Telefono erroneo
+6,Jessica,John Long,#ERROR!,93712,https://ejemplo.com/registro/32,*información adicional*,Fallit,Telefono erroneo
+7,Melissa,Brian Martinez,#ERROR!,62784,https://ejemplo.com/registro/26,*información adicional*,Actiu,Robinsion
+8,Sarah,Jacob Schultz,#ERROR!,48554,https://ejemplo.com/registro/3,*información adicional*,Pendent,Telefono erroneo
+9,Mary,Pamela Martin,#ERROR!,59544,https://ejemplo.com/registro/78,*información adicional*,Pendent,Telefono erroneo
+10,Judith,Richard Prince,#ERROR!,45697,https://ejemplo.com/registro/3,*información adicional*,Pendent,No contrata por mejor oferta
+11,Bailey,Hannah Brown,#ERROR!,51520,https://ejemplo.com/registro/92,*información adicional*,Actiu,Cuelga/no colabora
+12,Eric,Marissa Adams,#ERROR!,16041,https://ejemplo.com/registro/33,*información adicional*,Pendent,Telefono erroneo
+13,Benjamin,Steven Miller,#ERROR!,24531,https://ejemplo.com/registro/54,*información adicional*,Fallit,No contesta
+14,Diane,Jordan Sims,#ERROR!,72527,https://ejemplo.com/registro/97,*información adicional*,Fallit,Volver a llamar
+15,Rhonda,Heidi Johnston,#ERROR!,70117,https://ejemplo.com/registro/77,*información adicional*,Actiu,NO interesa propuesta
+16,Christina,Sheena Cline,#ERROR!,32314,https://ejemplo.com/registro/11,*información adicional*,Pendent,No contesta
+17,Thomas,Linda Martinez,#ERROR!,19959,https://ejemplo.com/registro/87,*información adicional*,Pendent,Volver a llamar
+18,Gregory,Jennifer Johnson,#ERROR!,57593,https://ejemplo.com/registro/56,*información adicional*,Fallit,Volver a llamar
+19,Matthew,Kimberly Chavez,#ERROR!,32258,https://ejemplo.com/registro/91,*información adicional*,Pendent,Telefono erroneo
+20,Stanley,Joseph Delacruz,#ERROR!,53564,https://ejemplo.com/registro/78,*información adicional*,Pendent,Telefono erroneo
+21,Gary,Richard Phillips,#ERROR!,45458,https://ejemplo.com/registro/17,*información adicional*,Actiu,Robinsion
+22,Shirley,Cynthia Morris MD,#ERROR!,31947,https://ejemplo.com/registro/17,*información adicional*,Actiu,Volver a llamar
+23,Donald,Shawn Rodriguez,#ERROR!,78545,https://ejemplo.com/registro/52,*información adicional*,Pendent,NO interesa propuesta
+24,Mary,Tina Hernandez,#ERROR!,99533,https://ejemplo.com/registro/12,*información adicional*,Pendent,No contesta
+25,Albert,Shannon Vasquez,#ERROR!,64962,https://ejemplo.com/registro/70,*información adicional*,Fallit,Telefono erroneo
+26,James,Brandon West,#ERROR!,51014,https://ejemplo.com/registro/74,*información adicional*,Fallit,Contrata
+27,Mary,Laura Villegas,#ERROR!,17858,https://ejemplo.com/registro/100,*información adicional*,Pendent,No contesta
+28,Maria,Mark Navarro,#ERROR!,40732,https://ejemplo.com/registro/38,*información adicional*,Fallit,NO interesa propuesta
+29,Joshua,Wanda Weeks,#ERROR!,89289,https://ejemplo.com/registro/22,*información adicional*,Pendent,No contesta
+30,Aaron,Adam Moreno,#ERROR!,52801,https://ejemplo.com/registro/18,*información adicional*,Actiu,Cuelga/no colabora
+31,Michael,Jamie Colon,#ERROR!,67897,https://ejemplo.com/registro/46,*información adicional*,Fallit,Telefono erroneo
+32,Eric,Michael Briggs,#ERROR!,33361,https://ejemplo.com/registro/6,*información adicional*,Fallit,Volver a llamar
+33,Danny,Shelby Marquez,#ERROR!,22167,https://ejemplo.com/registro/79,*información adicional*,Pendent,Contrata
+34,Hannah,Mackenzie Morton PhD,#ERROR!,38645,https://ejemplo.com/registro/68,*información adicional*,Actiu,Robinsion
+35,Wayne,Lynn Brown,#ERROR!,15915,https://ejemplo.com/registro/19,*información adicional*,Pendent,NO interesa propuesta
+36,Michelle,Rachel Hernandez MD,#ERROR!,67378,https://ejemplo.com/registro/46,*información adicional*,Actiu,No contrata por mejor oferta
+37,Christian,Mx. Tammy Gutierrez Jr.,#ERROR!,88128,https://ejemplo.com/registro/26,*información adicional*,Pendent,Contrata
+38,Michael,Nicholas Smith,#ERROR!,67471,https://ejemplo.com/registro/91,*información adicional*,Fallit,Cuelga/no colabora
+39,Michael,Jeremiah Baker,#ERROR!,89791,https://ejemplo.com/registro/72,*información adicional*,Fallit,Telefono erroneo
+40,Aaron,Amber Hudson,#ERROR!,95925,https://ejemplo.com/registro/33,*información adicional*,Fallit,No contrata por mejor oferta
+41,Matthew,Adrian Conley,#ERROR!,75683,https://ejemplo.com/registro/41,*información adicional*,Pendent,No contesta
+42,Deborah,Stephanie Mendez,#ERROR!,13134,https://ejemplo.com/registro/19,*información adicional*,Actiu,Telefono erroneo
+43,Sylvia,Savannah Jones,#ERROR!,24514,https://ejemplo.com/registro/34,*información adicional*,Pendent,Contrata
+44,Aaron,Laura Gentry,#ERROR!,73321,https://ejemplo.com/registro/92,*información adicional*,Actiu,Telefono erroneo
+45,Amy,Patricia Walker,#ERROR!,30440,https://ejemplo.com/registro/23,*información adicional*,Pendent,Volver a llamar
+46,Kimberly,Jessica Guerrero,#ERROR!,21823,https://ejemplo.com/registro/91,*información adicional*,Fallit,Cuelga/no colabora
+47,Cynthia,Vanessa Nelson,#ERROR!,67407,https://ejemplo.com/registro/12,*información adicional*,Actiu,Robinsion
+48,Katie,Fred Cooper,#ERROR!,82861,https://ejemplo.com/registro/89,*información adicional*,Pendent,Contrata
+49,Wanda,Cynthia Martinez,#ERROR!,70711,https://ejemplo.com/registro/85,*información adicional*,Actiu,NO interesa propuesta
+50,Raymond,Kent Higgins,#ERROR!,11850,https://ejemplo.com/registro/18,*información adicional*,Pendent,Robinsion
+51,Michael,Katelyn Coleman,#ERROR!,75300,https://ejemplo.com/registro/58,*información adicional*,Actiu,No contesta
+52,Sharon,Vincent Hall,#ERROR!,49274,https://ejemplo.com/registro/48,*información adicional*,Actiu,Telefono erroneo
+53,Sean,Helen Roberts,#ERROR!,26419,https://ejemplo.com/registro/46,*información adicional*,Pendent,Robinsion
+54,Maurice,Kim Clark,#ERROR!,61392,https://ejemplo.com/registro/66,*información adicional*,Pendent,Telefono erroneo
+55,Richard,Anthony Ward,#ERROR!,97280,https://ejemplo.com/registro/11,*información adicional*,Pendent,Cuelga/no colabora

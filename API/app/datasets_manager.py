@@ -5,8 +5,9 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 import asyncio
-import json
+import json, string
 from configparser import ConfigParser
+
 
 """
  Añadir documentación aquí sobre la gestión de los datasets
@@ -20,8 +21,10 @@ class DTManage_manager:
     """
 
     def __init__(self):
-        path = Path("./datasets/main_dataset_manager.csv").resolve()
+        path = Path("./datasets/main_dataset_manager2.csv").resolve()
         self.manage_dataset = pd.read_csv(path)
+        self.manage_dataset_numy = self.manage_dataset.to_numpy()
+        self.columns_names = ['Nombre','Apellidos','Numero Telefono','Codigo Postal','Url Registro','Otra Información', 'Estado', 'Respuesta', 'Columna Reservada'] # Read the column name from the excel in the future
 
     @property
     def show_dataset(self):
@@ -106,45 +109,72 @@ class DTManage_manager:
         except Exception as e:
             return ""
 
-class ButtonManager:
+    def remove_duplicated_values(self, a2_array: np.ndarray, columns_to_check):
+        """
+        Return `a2_array` without the rows that have matching column values in `self.manage_dataset_numy`.
+        
+        Parameters:
+        a2_array (np.ndarray): The array from which duplicates will be removed.
+        columns_to_check (list): Column indices to check for duplicates.
+        
+        Returns:
+        np.ndarray: The filtered array with duplicates removed.
+        """
+        if not isinstance(a2_array, np.ndarray):
+            raise ValueError("a2_array must be a numpy ndarray.")
+        
+        # Validate columns_to_check
+        if not all(isinstance(col, int) for col in columns_to_check):
+            raise ValueError("columns_to_check must be a list of integers.")
+        
+        # Create a set of tuples for the selected columns in `self.manage_dataset_numy`
+        set1 = {tuple(row[columns_to_check]) for row in self.manage_dataset_numy}
+        
+        # Use numpy boolean indexing for finding non-matching indices
+        mask = np.array([tuple(row[columns_to_check]) not in set1 for row in a2_array])
+        filtered_array2 = a2_array[mask]
+        
+        return filtered_array2
     
-    def __init__(self):
-        pass
+    async def update_dataset_status(self, new_values: np.ndarray):
+        """
+        Updates the dataset by removing duplicated values based on specified columns
+        and saves the updated dataset to a CSV file.
+        
+        Parameters:
+        new_values (np.ndarray): New data to update the dataset with.
+        """
+        try:
+            cleaned_array = self.remove_duplicated_values(new_values, columns_to_check=[3])
+            self.manage_dataset_numy = cleaned_array
 
-    @staticmethod
-    def get_actual_position(acual_position = 1):
-        """Obtengo la posición acutal de los botones para luego definirlo en el frontend"""
-        if acual_position <= 1:
-            return [1,2,3,4]
-        else:
-            return [acual_position -2, acual_position -1, acual_position, acual_position +1]
+            self.manage_dataset = pd.DataFrame(self.manage_dataset_numy, columns=self.columns_names)
+            # Asynchronously write to CSV
+            await self.async_to_csv(self.manage_dataset, "datasets/main_dataset_manager2.csv")
+        except Exception as e:
+            # Handle or log the exception as appropriate
+            print(f"An error occurred: {e}")
 
+    def to_csv_wrapper(self, df, filename, index, encoding):
+        try:
+            df.to_csv(filename, index=index, encoding=encoding)
+            print("CSV writing successful to:", filename)
+        except Exception as e:
+            print(f"Error in CSV writing: {e}")
+
+
+    async def async_to_csv(self, df: pd.DataFrame, filename: str):
+        loop = asyncio.get_event_loop()
+        # Use the wrapper function with run_in_executor
+        await loop.run_in_executor(None, self.to_csv_wrapper, df, Path(filename), False, 'utf-8')
+
+
+
+    
 
 if __name__ == "__main__":
 
     # Ejemplo de uso de DTManage_manager()
-    """
-    async def main():
-        manager = DTManage_manager()
-
-
-        nuevos_datos = ['nuevo_token', 'nuevo_nombre', 'nuevo_apellido', 'nuevo_telefono', 'nuevo_codigo_postal', 'nueva_url',r'{}']
-        await manager.add_new_row(nuevos_datos) # Añadir la nueva columna
-
-        
-        print(manager.show_dataset)
-
-
-    asyncio.run(main())"""
-    """
-        # Ejemplo de uso de convertir a array cada columna
-        Table_manager = DTManage_manager()
-
-        # print(Table_manager.show_dataset)
-        splited_json = Table_manager.split_jsoneable_dataset()
-        print(splited_json[-1])
-    """
 
     DFTester = DTManage_manager()
-    result = DFTester.checkin_dupped_columns(phone_number = "+34 34934957a2")
-    print(result)
+   
