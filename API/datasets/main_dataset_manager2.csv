@@ -64,6 +64,7 @@ Nombre,Apellidos,Numero Telefono,Codigo Postal,Url Registro,Otra Información,Es
 62,Sharon,Vincent Hall,#ERROR!,49274,https://ejemplo.com/registro/48,*información adicional*,Actiu,Telefono erroneo
 63,Sean,Helen Roberts,#ERROR!,26419,https://ejemplo.com/registro/46,*información adicional*,Pendent,Robinsion
 64,Maurice,Kim Clark,#ERROR!,61392,https://ejemplo.com/registro/66,*información adicional*,Pendent,Telefono erroneo
-65,Richard,Anthony Ward,#ERROR!,97280,https://ejemplo.com/registro/11,*información adicional*,Pendent,Cuelga/no colabora
-66,Ana Martínez,García López,#ERROR!,8020,https://ejemploregistro.com/ana,fecha nacimiento: 1985 04 12 | preferencias: Sin gluten | ,pendiente,pendiente a responder
-67,Carlos Hernández,Jiménez Ruiz,#ERROR!,28015,https://ejemploregistro.com/carlos,"hobbies: Fotografía, Senderismo | tipo cliente: Frecuente | ",pendiente,pendiente a responder
+65,Ana Martínez,García López,#ERROR!,8020,https://ejemploregistro.com/ana,fecha nacimiento: 1985 04 12 | preferencias: Sin gluten | ,pendiente,pendiente a responder
+66,Carlos Hernández,Jiménez Ruiz,#ERROR!,28015,https://ejemploregistro.com/carlos,"hobbies: Fotografía, Senderismo | tipo cliente: Frecuente | ",pendiente,pendiente a responder
+67,Mamon,Tenedor,#ERROR!,8020,https://ejemploregistro.com/ana,fecha nacimiento: 1985 04 12 | preferencias: Sin gluten | ,pendiente,pendiente a responder
+68,Pepito,Curiza,#ERROR!,28015,https://ejemploregistro.com/carlos,"hobbies: Fotografía, Senderismo | tipo cliente: Frecuente | ",pendiente,pendiente a responder

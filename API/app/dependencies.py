@@ -5,7 +5,7 @@ from fastapi.security import OAuth2PasswordBearer, APIKeyHeader
 from configparser import ConfigParser
 
 async def get_api_key(api_key: str = Security(Header(None))):
-    """Autentificación de la API Key"""
+    """Antigua Autentificación de la API Key"""
     expected_api_key = "948373984739874" 
     if api_key != expected_api_key:
         raise HTTPException(status_code=401, detail="Invalid API key")

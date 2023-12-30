@@ -172,17 +172,18 @@ class Document_CRUD():
     
     @feature_decorator
     def read_excel(self, range_name, enum=False) -> np.ndarray:
-        """Read the range and return enumerated if requested, excluding the header."""
-        service = self.auth()            
-
+        """Read the range and return enumerated if requested, excluding the header."""        
+        
         result = (
-            service.spreadsheets().values()
+            self.service_ .spreadsheets().values()
             .get(spreadsheetId=self.Spreadsheet_ID, range=range_name)
             .execute()
         )
-
-        pre_result = np.array(result.get('values', None))
-        return pre_result
+        try:
+            pre_result = np.array(result.get('values', None))
+        except:
+            self.send_message("Has añadido un caracter random sinsentido")
+            return np.array([])
         
         # Check if pre_result is None and return an empty array if so
         if pre_result is None:
@@ -200,7 +201,10 @@ class Document_CRUD():
             for i, row in enumerate(pre_result):
                 result_[i, :len(row)] = row or ''
 
+
+        self.clear_cell_formatting()
         return result_
+
 
     @feature_decorator
     def send_message(self, message, type = "warning", error_message=["An error ocurred"], ):
@@ -215,13 +219,13 @@ class Document_CRUD():
         ]
 
         if type == "warning":
-            background_color = "#fcba03"
+            background_color = [252, 186, 3]
         elif type == "error":
-            background_color = "#fc0303"
+            background_color = [252, 3, 3]
         elif type == "message":
-            background_color = "#3dfc03"
+            background_color = [61, 252, 3]
         else:
-            background_color = "#030bfc"
+            background_color = [3, 11, 252]
 
         body = {"valueInputOption": "USER_ENTERED", "data": data}
         result = (
@@ -231,14 +235,90 @@ class Document_CRUD():
         )
         print(f"{(result.get('totalUpdatedCells'))} cells updated.")
 
-
-    
-
-
-
+        border_style = {"style": "SOLID", "width": 1, "color": {"red": 0, "green": 0, "blue": 0, "alpha": 1}}
+        
+        requests = [
+            {
+                "updateBorders": {
+                    "range": {
+                        "sheetId": self.get_sheet_id("pau's spreadseet"), 
+                        "startRowIndex": 3,  # Adjust as needed
+                        "endRowIndex": 5,    # Adjust as needed
+                        "startColumnIndex": 1,  # B column
+                        "endColumnIndex": 2  # up to but not including C column
+                    },
+                    "top": border_style,
+                    "bottom": border_style,
+                    "left": border_style,
+                    "right": border_style,
+                    "innerHorizontal": border_style,
+                    "innerVertical": border_style
+                }
+            },
+            {
+                "repeatCell": {
+                    "range": {
+                        "sheetId": self.get_sheet_id("pau's spreadsheet"),
+                        "startRowIndex": 3,  # Adjust for row B5 (zero-indexed)
+                        "endRowIndex": 4,
+                        "startColumnIndex": 1,  # Adjust for column B (zero-indexed)
+                        "endColumnIndex": 2
+                    },
+                    "cell": {
+                        "userEnteredFormat": {
+                            "backgroundColor": {
+                                "red": background_color[0] / 255.0,
+                                "green": background_color[1] / 255.0,
+                                "blue": background_color[2] / 255.0,
+                                "alpha": 1
+                            }
+                        }
+                    },
+                    "fields": "userEnteredFormat.backgroundColor"
+                }
+            }
+        ]
+        
+     
+        self.service_.spreadsheets().batchUpdate(
+            spreadsheetId=self.Spreadsheet_ID, 
+            body={"requests": requests}
+        ).execute()
 
 
         return result.get('totalUpdatedCells', None)
+
+
+    def clear_cell_formatting(self):
+        sheet_id = self.get_sheet_id("pau's spreadsheet")  # Ensure this returns the correct sheet ID
+        # Define the range to clear
+        requests = [{
+            "updateCells": {
+                "range": {
+                    "sheetId": sheet_id,
+                    "startRowIndex": 3, 
+                    "endRowIndex": 5,   
+                    "startColumnIndex": 1,
+                    "endColumnIndex": 3    
+                },
+                "fields": "userEnteredValue,userEnteredFormat.backgroundColor,userEnteredFormat.borders"  # Fields to clear
+            }
+        }]
+
+        body = {
+            "requests": requests
+        }
+
+        try:
+            # Make the API call to batchUpdate
+            response = self.service_.spreadsheets().batchUpdate(
+                spreadsheetId=self.Spreadsheet_ID,  # Ensure this is the correct spreadsheet ID
+                body=body
+            ).execute()
+            print(f"Cleared cell formatting: {response}")
+        except Exception as e:
+            print(f"An error occurred: {e}")
+
 
 
 if __name__ == "__main__":
@@ -250,8 +330,9 @@ if __name__ == "__main__":
     # result = SheetCRUD.read_excel(range_name, enum=False)
     # print(result)
     # print(result.shape)
-    SheetCRUD.send_message("You what happened!")
 
+    # SheetCRUD.send_message("The spreedsheet ID is wrong", type="error", error_message=["An error ocurred"])
+    SheetCRUD.clear_cell_formatting()
 
     
     # SheetCRUD.Spreadsheet_ID = "1kpj7e08JrhsH4WKJhQeIYXWUh4k4Nc4vKSd-DuZqpVw"
