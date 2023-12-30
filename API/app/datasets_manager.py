@@ -3,6 +3,7 @@
 
 from pathlib import Path
 import pandas as pd
+from pandas.errors import EmptyDataError
 import numpy as np
 import asyncio
 import json, string
@@ -21,10 +22,20 @@ class DTManage_manager:
     """
 
     def __init__(self):
-        path = Path("./datasets/main_dataset_manager2.csv").resolve()
-        self.manage_dataset = pd.read_csv(path)
-        self.manage_dataset_numy = self.manage_dataset.to_numpy()
-        self.columns_names = ['Nombre','Apellidos','Numero Telefono','Codigo Postal','Url Registro','Otra Información', 'Estado', 'Respuesta', 'Columna Reservada'] # Read the column name from the excel in the future
+            path = Path("datasets/main_dataset_manager2.csv").resolve()
+            self.columns_names = ['Nombre', 'Apellidos', 'Numero Telefono', 'Codigo Postal', 'Url Registro', 'Otra Información', 'Estado', 'Respuesta', 'Columna Reservada']
+
+            try:
+                self.manage_dataset = pd.read_csv(path)
+                # Check if the DataFrame is empty
+                if self.manage_dataset.empty:
+                    raise EmptyDataError
+            except (FileNotFoundError, EmptyDataError):
+                # If the file does not exist or is empty, create an empty DataFrame with the specified columns
+                self.manage_dataset = pd.DataFrame(columns=self.columns_names)
+                self.manage_dataset.to_csv(path, index=False)
+
+            self.manage_dataset_numy = self.manage_dataset.to_numpy()
 
     @property
     def show_dataset(self):
@@ -149,28 +160,26 @@ class DTManage_manager:
             self.manage_dataset_numy = cleaned_array
 
             self.manage_dataset = pd.DataFrame(self.manage_dataset_numy, columns=self.columns_names)
-            # Asynchronously write to CSV
             await self.async_to_csv(self.manage_dataset, "datasets/main_dataset_manager2.csv")
         except Exception as e:
-            # Handle or log the exception as appropriate
             print(f"An error occurred: {e}")
 
     def to_csv_wrapper(self, df, filename, index, encoding):
         try:
-            df.to_csv(filename, index=index, encoding=encoding)
+            # Ensure the path is a string, as pd.to_csv expects a string path or buffer
+            df.to_csv(str(filename), index=index, encoding=encoding)
             print("CSV writing successful to:", filename)
         except Exception as e:
             print(f"Error in CSV writing: {e}")
 
-
     async def async_to_csv(self, df: pd.DataFrame, filename: str):
         loop = asyncio.get_event_loop()
-        # Use the wrapper function with run_in_executor
+        # The filename is converted to a Path object, ensure to convert it back to string if needed
         await loop.run_in_executor(None, self.to_csv_wrapper, df, Path(filename), False, 'utf-8')
 
 
 
-    
+
 
 if __name__ == "__main__":
 

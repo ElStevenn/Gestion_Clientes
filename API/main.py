@@ -94,10 +94,11 @@ def root_conf():
     return {"response":f"api de gestioón y prospectos empresariales"}
 
 
-@app.post("/enviar_cliente", description=documentation_others.enviar_cliente_doc)
+@app.post("/enviar_cliente", description=documentation_others.enviar_cliente_doc, tags=["Manejo de Clientes"])
 async def enviar_client(
     request: schemas.ClientsRequest, 
-    background_tasks: BackgroundTasks, 
+    background_tasks: BackgroundTasks,
+    api_key: str = Security(dependencies.get_api_key_)
 ):
     mail_structure_dict = []
     client_mana = []
@@ -139,28 +140,17 @@ async def enviar_client(
 
 
 
-@app.get("/client_manual_response/", response_class=HTMLResponse, description="Método interno que redirecciona a una  página para rellenar los datos")
+@app.get("/client_manual_response/", response_class=HTMLResponse, description="Método interno que redirecciona a una  página para rellenar los datos", tags=["Manejo de Clientes"])
 async def resonder_cliente_inter(request: Request, id: Optional[str] = ''):
 
 
     return templates.TemplateResponse("client_verifier_page.html", {'request': request,"name":"Nombre_Cliente", "client_id":id}) # Pasar luego el id del cliente real aquí
 
-@app.get("/responder_cliente/", response_class=HTMLResponse, description="Página aparte que te sale para abrir una pestaña aparte para responder la solicitud")
+@app.get("/responder_cliente/", response_class=HTMLResponse, description="Página aparte que te sale para abrir una pestaña aparte para responder la solicitud", tags=["Manejo de Clientes"])
 async def client_html_response(request: Request, id: Optional[str] = ''):
 
 
     return templates.TemplateResponse("client_camps_verify.html", {'request': request}) # Agregar más campos aquí 
-
-
-@app.get("/veure_usuaris/", response_class=HTMLResponse, description="Interfaz HTML que porporciona la API para ver los usuarios.\n\n**Parámetros de Entrada:**\n- **pag**: (Opcional) Es un entero que representa el número de página en la paginación de la tabla. Si no se proporciona, por defecto es 1")
-async def veure_dataset(request: Request, pag: Optional[int] = 1):
-    
-    # Obtengo la posición actual de los botones
-    buttons_position = datasets_manager.ButtonManager.get_actual_position(pag-1)
-
-
-    return templates.TemplateResponse('dataset_visualize.html', {"request": request, "button_var": buttons_position, "num_page": pag-1, "server_ip": host, "nombre_columna_reservada": documentation_others.del_guiones(config['OTROS']['nombre_columna_reservada'])})
-
 
 
 @app.get("/get_json_dataset", description="Este método es interno y se encarga de pasar los datos en formato JSON para su posterior utilización en tablas.", tags=["Gestor Dataset"])
@@ -171,7 +161,7 @@ async def get_json_dataset(api_key = str(Depends(dependencies.get_api_key))):
     return json_dataset
 
 
-@app.get("/admin_response", response_class=HTMLResponse, description="Esta es la página del link para que pueda responder la respuesta el admin")
+@app.get("/admin_response", response_class=HTMLResponse, description="Esta es la página del link para que pueda responder la respuesta el admin", tags=["Manejo de Clientes"])
 async def admin_accept_response(request: Request, id: Optional[str] = "" , api_key = str(Depends(dependencies.get_api_key))):
 
     return templates.TemplateResponse('client_verifier_page.html', {"request": request, "variable1": "this is a great variable"})
@@ -230,7 +220,7 @@ async def set(request: Request, response: Response, sessionStorage: SessionStora
 
 
 @app.get("/expire-session", description="", tags=["Sessions"])
-async def get(sessionId: str = Depends(getSessionId), sessionStorage: SessionStorage = Depends(getSessionStorage)):
+async def expire_session(sessionId: str = Depends(getSessionId), sessionStorage: SessionStorage = Depends(getSessionStorage)):
     deleteSession(sessionId, sessionStorage)
     return None
 
@@ -262,7 +252,7 @@ async def check_username(body_request: schemas.UserBody, api_key=str(Depends(dep
 @app.patch("/update_dataset", description=r"Método interno para leer el excel y actualizar el dataset del servidor\n*header* -> {'api-key':string}", tags=["Gestor Dataset"])
 async def update_dataset_from_excel(api_key: str = Security(dependencies.get_api_key_)):
 
-    range_name = "C19:K9999999" # We can increese this if is needed
+    range_name = "C9:K9999999" # We can increese this if is needed
     all_new_values = google_spreadsheet.read_excel(range_name, enum=True)
 
     await dataset_manager.update_dataset_status(all_new_values)

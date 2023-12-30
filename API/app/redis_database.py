@@ -3,7 +3,7 @@ from configparser import ConfigParser
 from pathlib import Path
 import string
 
-# Regis database configuration
+# Redis database configuration
 r = Redis(host='localhost', port='6381', decode_responses=True)
 config = ConfigParser()
 config.read("../conf.ini")
