@@ -259,9 +259,9 @@ class Document_CRUD():
                 "repeatCell": {
                     "range": {
                         "sheetId": self.get_sheet_id("pau's spreadsheet"),
-                        "startRowIndex": 3,  # Adjust for row B5 (zero-indexed)
+                        "startRowIndex": 3,  
                         "endRowIndex": 4,
-                        "startColumnIndex": 1,  # Adjust for column B (zero-indexed)
+                        "startColumnIndex": 1,  
                         "endColumnIndex": 2
                     },
                     "cell": {

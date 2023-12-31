@@ -30,10 +30,11 @@ app = FastAPI(
     docs_url="/docs_00"
 )
 
-# Configuración de rutas y directorios
+# Configuración de rutas y directorios y servicios
 base_dir = Path(__file__).parent
 static_dir = os.path.join(base_dir, 'frontend', 'static')
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
+os.system('sudo systemctl start internalfeat.service')
 
 # Configuración de plantillas Jinja2 para la interfaz de usuario
 templates = Jinja2Templates(directory=base_dir / 'frontend')
@@ -89,10 +90,14 @@ async def vadilation_exception_handler(request: Request, exc: RequestValidationE
 
 # ----------------------------- Distintas solicitudes de la API -----------------------------
 
-@app.get("/", description="Función root. Esta función comprueba que la API esté en funcionamiento")
+@app.get("/", description="Función root. Esta función comprueba que la API esté en funcionamiento", tags=["Main"])
 def root_conf():
-    return {"response":f"api de gestioón y prospectos empresariales"}
+    return RedirectResponse("http://inutil.top/redoc")
 
+# Remove this function in the future :V
+@app.get("/docs")
+def redic_redocs():
+    return RedirectResponse("http://inutil.top/redoc")
 
 @app.post("/enviar_cliente", description=documentation_others.enviar_cliente_doc, tags=["Manejo de Clientes"])
 async def enviar_client(
@@ -139,13 +144,6 @@ async def enviar_client(
         return {"status": "error", "response":"No has introducido ningún cliente en el cuerpo de la solicitud, mira el cuerpo de la solicitud"}
 
 
-
-@app.get("/client_manual_response/", response_class=HTMLResponse, description="Método interno que redirecciona a una  página para rellenar los datos", tags=["Manejo de Clientes"])
-async def resonder_cliente_inter(request: Request, id: Optional[str] = ''):
-
-
-    return templates.TemplateResponse("client_verifier_page.html", {'request': request,"name":"Nombre_Cliente", "client_id":id}) # Pasar luego el id del cliente real aquí
-
 @app.get("/responder_cliente/", response_class=HTMLResponse, description="Página aparte que te sale para abrir una pestaña aparte para responder la solicitud", tags=["Manejo de Clientes"])
 async def client_html_response(request: Request, id: Optional[str] = ''):
 
@@ -153,11 +151,9 @@ async def client_html_response(request: Request, id: Optional[str] = ''):
     return templates.TemplateResponse("client_camps_verify.html", {'request': request}) # Agregar más campos aquí 
 
 
-@app.get("/get_json_dataset", description="Este método es interno y se encarga de pasar los datos en formato JSON para su posterior utilización en tablas.", tags=["Gestor Dataset"])
-async def get_json_dataset(api_key = str(Depends(dependencies.get_api_key))):
-
+@app.get("/get_json_dataset", description="Este métodoes un metodo que se usaba antes para cargar los datos de los clientes en forma de json.", tags=["Gestor Dataset"])
+async def get_json_dataset(api_key: str = Security(dependencies.get_api_key_)):
     json_dataset = dataset_manager.dataset_toJson
-
     return json_dataset
 
 
@@ -168,12 +164,12 @@ async def admin_accept_response(request: Request, id: Optional[str] = "" , api_k
 
 
 @app.get("/descargar_tabla", description="Este método es interno, y es usado para mandar al frontend el para descargar la tabla", tags=["Gestor Dataset"])
-async def download_table(filename: Optional[str] = "Tabla_clientes.xlsx" ,api_key = str(Depends(dependencies.get_api_key))):
+async def download_table(filename: Optional[str] = "Tabla_clientes.xlsx" , api_key: str = Security(dependencies.get_api_key_)):
 
     return FileResponse(dataset_manager.get_xlsx_document(filename))
 
 
-@app.get("/apiconf", response_class=HTMLResponse, description="Pequeño panel html para configurar la API (hacer si me da tiempo)") # response_class=HTMLResponse, 
+@app.get("/apiconf", response_class=HTMLResponse, description="Pequeño panel html para configurar la API (hacer si me da tiempo)", tags=["Main"])
 async def api_conf(request: Request):
     
     # Poner aquí la redirección en vez de en el frontend
@@ -219,17 +215,17 @@ async def set(request: Request, response: Response, sessionStorage: SessionStora
     return {"session": f"{sessionData}", "message":f"session has been created succesfully", "session_id":sessionId}
 
 
-@app.get("/expire-session", description="", tags=["Sessions"])
+@app.delete("/expire-session", description="Expire the current session in the redis storage and frontend", tags=["Sessions"])
 async def expire_session(sessionId: str = Depends(getSessionId), sessionStorage: SessionStorage = Depends(getSessionStorage)):
     deleteSession(sessionId, sessionStorage)
     return None
 
-@app.get("/api_conf_login", response_class=HTMLResponse, description="Verificacion del usuario para acceder a la apiconf")
+@app.get("/api_conf_login", response_class=HTMLResponse, description="Verificacion del usuario para acceder a la apiconf", tags=["Main"])
 async def api_conf_login(request: Request, redirect: Optional[str] = None):
     
     return templates.TemplateResponse('client_verify.html', {'request': request, 'redirect':redirect})
 
-@app.post("/check_username", description="Método interno para verificar si el usuario es correcto y existe")
+@app.post("/check_username", description="Método interno para verificar si el usuario es correcto y existe", tags=["Main"])
 async def check_username(body_request: schemas.UserBody, api_key=str(Depends(dependencies.get_api_key))):
 
     # if isinstance(api_key, dependencies.get_api_key):
@@ -259,6 +255,9 @@ async def update_dataset_from_excel(api_key: str = Security(dependencies.get_api
 
     return {"status":"success", "message":"Dataset updated", "values":str(all_new_values.shape)}
 
+@app.post("/make_backup", description="", tags=["Gestor Dataset", "Pendiente a implementar"])
+async def make_backup(api_key: str = Security(dependencies.get_api_key_)):
+    return ""
 
 """
 @app.post("/api_set_conf", description="Metodo interno para aplicar la configuración")
@@ -314,7 +313,7 @@ async def webdocket_endpoint(websocket: WebSocket):
 
 # ------------------- OAuth2 Autentication ----------------------------------------------------------------
 
-@app.get("/code", description="Redirect URI for API authentication")
+@app.get("/code", description="Redirect URI for API authentication", tags=["Pendiente a implementar"])
 async def redirect_uri(request: Request):
  # Extract the authorization code from the request
     code = request.query_params.get('code')

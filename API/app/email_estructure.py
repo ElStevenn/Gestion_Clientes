@@ -48,11 +48,6 @@ class ClienteEmailFormatter:
                 formatted_info += f"<li><strong>{key_formatted}:</strong> {value}</li>"
             formatted_info += "</ul>"
 
-        # Link para responder. Se ha eliminado el evento 'onclick' y el script 'window.open' para mejor compatibilidad.                 |   
-        formatted_info += f"<a href='http://{self.server_ip}{f':{self.puerto}' if self.puerto != 80 else ''}/client_manual_response/{cliente_info.get('id', '')}' target='_blank' style='color: blue;'>Fes click aquí per respondre</a>"
-
-
-
         return formatted_info
 
     def _add_email_template(self, email_body):
