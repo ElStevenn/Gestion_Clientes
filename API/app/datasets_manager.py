@@ -1,41 +1,79 @@
-
-
+#!/usr/bin/env python3
 
 from pathlib import Path
 import pandas as pd
 from pandas.errors import EmptyDataError
 import numpy as np
-import asyncio
+import asyncio, os
 import json, string
 from configparser import ConfigParser
-
-
-"""
- Añadir documentación aquí sobre la gestión de los datasets
+from .google_sheet_imp import Document_CRUD 
 
 """
+    Añadir documentación aquí sobre la gestión de los datasets
 
-class DTManage_manager:
+"""
+
+config_path = Path(__file__).parent.parent / 'conf.ini'
+conf = ConfigParser()
+conf.read(config_path)
+
+class DTManage_manager():
     """
-    Clase para manejar un dataset de tokens para el manager.
+    Clase para manejar el dataset el cuál es usado para detectar valores duplicados, valores erroneos y entre muchas cosas más
     Permite añadir nuevas columnas, filas y eliminar filas específicas.
     """
 
     def __init__(self):
-            path = Path("datasets/main_dataset_manager2.csv").resolve()
-            self.columns_names = ['Nombre', 'Apellidos', 'Numero Telefono', 'Codigo Postal', 'Url Registro', 'Otra Información', 'Estado', 'Respuesta', 'Columna Reservada']
+        # Directory for datasets
+        datasets_dir = Path("datasets")
+        datasets_dir.mkdir(parents=True, exist_ok=True)
 
-            try:
-                self.manage_dataset = pd.read_csv(path)
-                # Check if the DataFrame is empty
-                if self.manage_dataset.empty:
-                    raise EmptyDataError
-            except (FileNotFoundError, EmptyDataError):
-                # If the file does not exist or is empty, create an empty DataFrame with the specified columns
-                self.manage_dataset = pd.DataFrame(columns=self.columns_names)
-                self.manage_dataset.to_csv(path, index=False)
+        # Full path to the CSV file
+        path = datasets_dir / "main_dataset_manager2.csv"
 
-            self.manage_dataset_numy = self.manage_dataset.to_numpy()
+        self.google_sheed_crud = Document_CRUD(conf['GOOGLE-SHEET']['spreadsheet_id'])
+
+        try:
+            # Assuming get_column_names is a method that returns a list
+            self.columns_names = self.get_column_names
+            self.columns_names.insert(0, 'index')
+        except Exception as e:
+            # Handle exceptions related to Google Sheets API call
+            print(f"Error retrieving column names: {e}")
+            self.columns_names = ['index']  # Default column names
+
+        try:
+            self.manage_dataset = pd.read_csv(path)
+            if self.manage_dataset.empty:
+                raise pd.errors.EmptyDataError
+        except (FileNotFoundError, pd.errors.EmptyDataError):
+            self.manage_dataset = pd.DataFrame(columns=self.columns_names)
+            self.manage_dataset.to_csv(path, index=False)
+
+        self.manage_dataset_numy = self.manage_dataset.to_numpy()
+
+    @property
+    def get_column_names(self):
+        """get all column names from the Google spreadseet document"""
+
+        
+        return [val.get('value', None) for val in self.google_sheed_crud.get_all_columns_name_and_status()]
+
+    def get_unique_values(self):
+        """
+        1: Get all the unique values (it means it's italic) and returns in an array with the position. e.g. [1,4,7]
+        2: Get the columns name with unique values. e.g. [{'position': 1, 'name': 'Surname'}, {'position': 4, 'name': 'City'}, {'position': 7, 'name': 'Description'}]
+        """
+        all_unique_values = []
+        name_unq_with_values = []
+        column_names = self.get_column_names
+        for i, pos in enumerate(self.google_sheed_crud.get_all_columns_name_and_status()):
+            if pos.get('is_italic', None):
+                all_unique_values.append(i)
+                name_unq_with_values.append({'position': i, 'name': column_names[i]})
+
+        return all_unique_values, name_unq_with_values
 
     @property
     def show_dataset(self):
@@ -94,16 +132,6 @@ class DTManage_manager:
         
         return self.manage_dataset.to_excel(filename)
 
-    def checkin_dupped_columns(self, phone_number = None, url_reg = None):
-        read_numbers = self.manage_dataset[self.manage_dataset['numero_telefono'] ==  phone_number]
-        read_url = self.manage_dataset[self.manage_dataset['url_registro'] ==  url_reg]
-
-        if len(read_numbers):
-            return True
-        elif len(read_url):
-            return True
-        return False
-
     @staticmethod
     def dic_writter(dic: dict):
         """esta función es simplemente para definirel campo de información adicionar y ponerlo de forma legible"""
@@ -120,70 +148,78 @@ class DTManage_manager:
         except Exception as e:
             return ""
 
-    def remove_duplicated_values(self, a2_array: np.ndarray, columns_to_check):
+    def find_duplicate_rows_by_columns(self, data, column_indices, column_names):
         """
-        Return `a2_array` without the rows that have matching column values in `self.manage_dataset_numy`.
-        
-        Parameters:
-        a2_array (np.ndarray): The array from which duplicates will be removed.
-        columns_to_check (list): Column indices to check for duplicates.
-        
-        Returns:
-        np.ndarray: The filtered array with duplicates removed.
-        """
-        if not isinstance(a2_array, np.ndarray):
-            raise ValueError("a2_array must be a numpy ndarray.")
-        
-        # Validate columns_to_check
-        if not all(isinstance(col, int) for col in columns_to_check):
-            raise ValueError("columns_to_check must be a list of integers.")
-        
-        # Create a set of tuples for the selected columns in `self.manage_dataset_numy`
-        set1 = {tuple(row[columns_to_check]) for row in self.manage_dataset_numy}
-        
-        # Use numpy boolean indexing for finding non-matching indices
-        mask = np.array([tuple(row[columns_to_check]) not in set1 for row in a2_array])
-        filtered_array2 = a2_array[mask]
-        
-        return filtered_array2
-    
-    async def update_dataset_status(self, new_values: np.ndarray):
-        """
-        Updates the dataset by removing duplicated values based on specified columns
-        and saves the updated dataset to a CSV file.
-        
-        Parameters:
-        new_values (np.ndarray): New data to update the dataset with.
-        """
-        try:
-            cleaned_array = self.remove_duplicated_values(new_values, columns_to_check=[3])
-            self.manage_dataset_numy = cleaned_array
+        Identify rows in a numpy array that have duplicate values in the specified columns.
 
-            self.manage_dataset = pd.DataFrame(self.manage_dataset_numy, columns=self.columns_names)
-            await self.async_to_csv(self.manage_dataset, "datasets/main_dataset_manager2.csv")
+        :param data: Numpy array of data
+        :param column_indices: List of indices of the columns to check for duplicate values
+        :return: String messages indicating which rows have the same values in the specified columns
+        """
+        duplicate_messages = []
+
+        # Convert column_indices to integers if they are strings
+        column_indices = [int(index) for index in column_indices]
+
+        for index in column_indices:
+            # Create a dictionary to track values and their corresponding rows
+            value_to_rows = {}
+            for row_idx, value in enumerate(data[:, index]):
+                if value in value_to_rows:
+                    value_to_rows[value].append(row_idx)
+                else:
+                    value_to_rows[value] = [row_idx]
+
+            # Identify duplicates and prepare messages
+            for value, rows in value_to_rows.items():
+                if len(rows) > 1:
+                    rows_str = ' y '.join(['la fila ' + str(row + 9) for row in rows])
+                    duplicate_messages.append(f"{rows_str} tiene el mismo valor '{value}' en la columna {column_names.get('name', None)[index]}")
+
+        if duplicate_messages:
+            self.google_sheed_crud.send_message(", ".join(duplicate_messages), 'warning', ['Error ocurrido'])
+        else:
+            self.google_sheed_crud.clear_cell_formatting()
+
+
+        # return ", ".join(duplicate_messages) if duplicate_messages else ["No se han encontrado valores duplicados."]
+    
+
+    async def update_dataset_status(self, new_values: np.ndarray):
+        try:
+            column_indic, column_name_inic = self.get_unique_values()
+            self.find_duplicate_rows_by_columns(new_values, column_indices = column_indic, column_names=column_name_inic)
+            self.manage_dataset = pd.DataFrame(new_values, columns=self.get_column_names)
+
+            if not self.manage_dataset.empty:
+                await self.async_to_csv(self.manage_dataset, "datasets/main_dataset_manager2.csv")
+            else:
+                print("Error: DataFrame is empty, not writing to CSV.")
         except Exception as e:
             print(f"An error occurred: {e}")
 
     def to_csv_wrapper(self, df, filename, index, encoding):
         try:
-            # Ensure the path is a string, as pd.to_csv expects a string path or buffer
-            df.to_csv(str(filename), index=index, encoding=encoding)
-            print("CSV writing successful to:", filename)
+            if not df.empty:
+                df.to_csv(filename, mode='w', index=index, encoding=encoding)
+                print("CSV writing successful to:", filename)
+            else:
+                print("Error: DataFrame is empty, not writing to CSV.")
         except Exception as e:
             print(f"Error in CSV writing: {e}")
 
     async def async_to_csv(self, df: pd.DataFrame, filename: str):
         loop = asyncio.get_event_loop()
-        # The filename is converted to a Path object, ensure to convert it back to string if needed
-        await loop.run_in_executor(None, self.to_csv_wrapper, df, Path(filename), False, 'utf-8')
+        await loop.run_in_executor(None, self.to_csv_wrapper, df, filename, False, 'utf-8-sig')
+
+
 
 
 
 
 
 if __name__ == "__main__":
+    dat_manager = DTManage_manager()
+    name_pos_unq_val = dat_manager.get_unique_values()[0]
+    
 
-    # Ejemplo de uso de DTManage_manager()
-
-    DFTester = DTManage_manager()
-   

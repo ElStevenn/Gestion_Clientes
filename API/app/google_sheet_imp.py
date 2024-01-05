@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import google.auth
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
@@ -25,6 +26,7 @@ class Document_CRUD():
     def __init__(self, Spreadsheet_ID=None):
         self.Spreadsheet_ID = Spreadsheet_ID
         self.service_ = self.auth()
+        self.column_rangeName = "C8:K8"
 
     def generate_auth_url(self):
         flow = InstalledAppFlow.from_client_secrets_file(
@@ -171,39 +173,44 @@ class Document_CRUD():
             return 0  # Default to 0 if no match is found
     
     @feature_decorator
-    def read_excel(self, range_name, enum=False) -> np.ndarray:
+    def read_excel(self, range_name, enum=False):
         """Read the range and return enumerated if requested, excluding the header."""        
         
         result = (
-            self.service_ .spreadsheets().values()
+            self.service_.spreadsheets().values()
             .get(spreadsheetId=self.Spreadsheet_ID, range=range_name)
             .execute()
         )
         try:
-            pre_result = np.array(result.get('values', None))
-        except:
-            self.send_message("Has añadido un caracter random sinsentido")
+            pre_result = result.get('values', [])
+        except Exception as e:
+            self.send_message(f"An error occurred: {e}")
             return np.array([])
         
-        # Check if pre_result is None and return an empty array if so
-        if pre_result is None:
+        # Check if pre_result is empty and return an empty array if so
+        if not pre_result:
             return np.array([])
+        
+        # Find the maximum number of columns in any row
+        max_cols = max(len(row) for row in pre_result)
 
-        n_rows = pre_result.shape[0]
-        n_cols = 9 # Modify this if is required
-        result_ = np.full((n_rows, n_cols), '', dtype=object)
+        # Create a result array with an additional column for enumeration if needed
+        n_cols = max_cols + 1 if enum else max_cols
+        result_ = np.full((len(pre_result), n_cols), '', dtype=object)
 
-        if enum:
-                for i, row in enumerate(pre_result):
-                    result_[i, 0] = str(i)
-                    result_[i, 1:] = row
-        else:
-            for i, row in enumerate(pre_result):
-                result_[i, :len(row)] = row or ''
+        # Populate the result array
+        for i, row in enumerate(pre_result):
+            if enum:
+                result_[i, 0] = str(i)  # Enumeration column
+                end_col = min(len(row) + 1, n_cols)
+                result_[i, 1:end_col] = row[:end_col - 1]
+            else:
+                end_col = min(len(row), n_cols)
+                result_[i, :end_col] = row[:end_col]
 
-
-        self.clear_cell_formatting()
         return result_
+
+
 
 
     @feature_decorator
@@ -319,6 +326,30 @@ class Document_CRUD():
         except Exception as e:
             print(f"An error occurred: {e}")
 
+    @feature_decorator
+    def get_all_columns_name_and_status(self):
+        """
+        Get all the column name and if is in italic mode or no
+
+        """
+
+        range_name = "C8:Z8" # Change this as needed
+        sheet = self.service_.spreadsheets()
+        data_format_result = sheet.get(spreadsheetId=self.Spreadsheet_ID, ranges=range_name,
+                   fields='sheets(data(rowData(values(effectiveFormat(textFormat(italic))))))').execute()
+        
+        result = sheet.values().get(spreadsheetId=self.Spreadsheet_ID, range=range_name).execute().get('values', [])[0]
+        
+        _result = []
+        for i, value in enumerate(data_format_result.get('sheets', [])[0].get('data', [])[0].get('rowData', [])[0].get('values', [])):
+            _result.append({
+                'value': result[i],
+                'is_italic': True if value.get('effectiveFormat', None).get('textFormat', None).get('italic', None) else False
+                # We can add more states here as needed 
+            })
+
+        return _result
+        
 
 
 if __name__ == "__main__":
@@ -326,14 +357,13 @@ if __name__ == "__main__":
     SheetCRUD = Document_CRUD()
     SheetCRUD.Spreadsheet_ID = "1kpj7e08JrhsH4WKJhQeIYXWUh4k4Nc4vKSd-DuZqpVw"
 
-    # range_name = "C9:K9999999"
-    # result = SheetCRUD.read_excel(range_name, enum=False)
+    range_name = "C9:K9999999"
+    # result = SheetCRUD.read_excel(range_name, enum=True)
     # print(result)
     # print(result.shape)
 
-    # SheetCRUD.send_message("The spreedsheet ID is wrong", type="error", error_message=["An error ocurred"])
-    SheetCRUD.clear_cell_formatting()
-
+    result = SheetCRUD.get_all_columns_name_and_status()
+    print(result)
     
     # SheetCRUD.Spreadsheet_ID = "1kpj7e08JrhsH4WKJhQeIYXWUh4k4Nc4vKSd-DuZqpVw"
     # # SheetCRUD.auth()

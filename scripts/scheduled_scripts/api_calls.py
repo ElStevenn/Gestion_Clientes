@@ -24,14 +24,12 @@ header = {
 
 def read_data_call():
     try:
-        requests.patch(url1, headers=header)
-        time.sleep(0.2)
         response = requests.patch(url1, headers=header)
         print(f"Response: {response.status_code}, {response.text}")
     except:
         print("The server is currently turned off")
 
-schedule.every(2).seconds.do(read_data_call)
+schedule.every(0.5).seconds.do(read_data_call)
 while True:
     schedule.run_pending()
     time.sleep(1)

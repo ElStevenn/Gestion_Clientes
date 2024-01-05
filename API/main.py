@@ -255,9 +255,15 @@ async def update_dataset_from_excel(api_key: str = Security(dependencies.get_api
 
     return {"status":"success", "message":"Dataset updated", "values":str(all_new_values.shape)}
 
-@app.post("/make_backup", description="", tags=["Gestor Dataset", "Pendiente a implementar"])
+@app.post("/make_backup", description="Make a backup of the dataset and send to S3 (AWS)", tags=["Gestor Dataset", "Pendiente a implementar"])
 async def make_backup(api_key: str = Security(dependencies.get_api_key_)):
     return ""
+
+@app.get("/get_cols_names")
+async def get_cls():
+    col_names = dataset_manager.get_column_names
+    col_names.insert(0, 'index')
+    return {"result":col_names}
 
 """
 @app.post("/api_set_conf", description="Metodo interno para aplicar la configuración")
@@ -311,7 +317,7 @@ async def webdocket_endpoint(websocket: WebSocket):
         print(f"Client disconnected with code: {e.code}")
 
 
-# ------------------- OAuth2 Autentication ----------------------------------------------------------------
+# ------------------- OAuth Autentication ----------------------------------------------------------------
 
 @app.get("/code", description="Redirect URI for API authentication", tags=["Pendiente a implementar"])
 async def redirect_uri(request: Request):
