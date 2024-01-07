@@ -1,0 +1,38 @@
+[
+    {
+        "value": "Nombre",
+        "is_italic": false
+    },
+    {
+        "value": "Pajarera",
+        "is_italic": false
+    },
+    {
+        "value": "Numero Telefono",
+        "is_italic": true
+    },
+    {
+        "value": "Codigo Postal",
+        "is_italic": false
+    },
+    {
+        "value": "Url Registro",
+        "is_italic": false
+    },
+    {
+        "value": "Otra Informaci\u00f3n",
+        "is_italic": false
+    },
+    {
+        "value": "Estado",
+        "is_italic": true
+    },
+    {
+        "value": "Respuesta",
+        "is_italic": false
+    },
+    {
+        "value": "Columna Reservada",
+        "is_italic": false
+    }
+]

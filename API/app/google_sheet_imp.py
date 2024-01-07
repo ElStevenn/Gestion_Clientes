@@ -208,8 +208,7 @@ class Document_CRUD():
                 end_col = min(len(row), n_cols)
                 result_[i, :end_col] = row[:end_col]
 
-        return result_
-
+        return np.array(result_)
 
 
 
@@ -357,13 +356,13 @@ if __name__ == "__main__":
     SheetCRUD = Document_CRUD()
     SheetCRUD.Spreadsheet_ID = "1kpj7e08JrhsH4WKJhQeIYXWUh4k4Nc4vKSd-DuZqpVw"
 
-    range_name = "C9:K9999999"
-    # result = SheetCRUD.read_excel(range_name, enum=True)
-    # print(result)
-    # print(result.shape)
-
-    result = SheetCRUD.get_all_columns_name_and_status()
+    range_name = "C9:Z9999999"
+    result = SheetCRUD.read_excel(range_name, enum=True)
     print(result)
+    print(result.shape)
+
+    # result = SheetCRUD.get_all_columns_name_and_status()
+    # print(len(result))
     
     # SheetCRUD.Spreadsheet_ID = "1kpj7e08JrhsH4WKJhQeIYXWUh4k4Nc4vKSd-DuZqpVw"
     # # SheetCRUD.auth()

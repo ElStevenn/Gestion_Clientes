@@ -58,7 +58,7 @@ class DTManage_manager():
         """get all column names from the Google spreadseet document"""
 
         
-        return [val.get('value', None) for val in self.google_sheed_crud.get_all_columns_name_and_status()]
+        return [val.get('value', None) for val in self.get_columns_ns]
 
     def get_unique_values(self):
         """
@@ -68,12 +68,25 @@ class DTManage_manager():
         all_unique_values = []
         name_unq_with_values = []
         column_names = self.get_column_names
-        for i, pos in enumerate(self.google_sheed_crud.get_all_columns_name_and_status()):
+        for i, pos in enumerate(self.get_columns_ns):
             if pos.get('is_italic', None):
                 all_unique_values.append(i)
                 name_unq_with_values.append({'position': i, 'name': column_names[i]})
 
         return all_unique_values, name_unq_with_values
+
+    @property
+    def get_columns_ns(self):
+        """Get column name and if is unique or not"""
+        with  open('app/config/config_column_status.json', 'r') as f:
+            return json.loads(f.read())       
+
+    @property
+    def get_excel_range(self):
+        """Get excel range_name by its column range, saved in a JSON file"""
+        with open('app/config/general_config.json', 'r') as f:
+            result = json.loads(f.read())
+        return str(result['range_name'])
 
     @property
     def show_dataset(self):
@@ -182,9 +195,6 @@ class DTManage_manager():
             self.google_sheed_crud.clear_cell_formatting()
 
 
-        # return ", ".join(duplicate_messages) if duplicate_messages else ["No se han encontrado valores duplicados."]
-    
-
     async def update_dataset_status(self, new_values: np.ndarray):
         try:
             column_indic, column_name_inic = self.get_unique_values()
@@ -220,6 +230,6 @@ class DTManage_manager():
 
 if __name__ == "__main__":
     dat_manager = DTManage_manager()
-    name_pos_unq_val = dat_manager.get_unique_values()[0]
-    
+    name_pos_unq_val = dat_manager.get_unique_values()
+    print(name_pos_unq_val[0])
 

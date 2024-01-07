@@ -15,7 +15,7 @@ from app.redis_database import r,  get_range_name # Redis storage
 from fastapi_redis_session import deleteSession, getSession, getSessionId, getSessionStorage, setSession, SessionStorage
 from typing import Optional, Annotated, Any
 from configparser import ConfigParser
-import os, datetime
+import os, datetime, aiofiles, json, string
 import uvicorn
 from uuid import uuid4
 from uuid import UUID
@@ -245,25 +245,47 @@ async def check_username(body_request: schemas.UserBody, api_key=str(Depends(dep
 
     return {"status":"succes", "message": f"User {body_request.username} is avariable","apikey_provided": api_key}
 
-@app.patch("/update_dataset", description=r"Método interno para leer el excel y actualizar el dataset del servidor\n*header* -> {'api-key':string}", tags=["Gestor Dataset"])
+@app.patch("/update_dataset_", description=r"Método interno para leer el excel y actualizar el dataset del servidor\n*header* -> {'api-key':string}", tags=["Gestor Dataset"])
 async def update_dataset_from_excel(api_key: str = Security(dependencies.get_api_key_)):
 
-    range_name = "C9:K9999999" # We can increese this if is needed
-    all_new_values = google_spreadsheet.read_excel(range_name, enum=True)
+    range_name = dataset_manager.get_excel_range
+    try:
+        all_new_values = google_spreadsheet.read_excel(str(range_name), enum=True)
 
-    await dataset_manager.update_dataset_status(all_new_values)
+    except Exception as e:
+        return {"status":"error", "message": f"An error ocurred: {e}"}
+    # await dataset_manager.update_dataset_status(all_new_values)
 
-    return {"status":"success", "message":"Dataset updated", "values":str(all_new_values.shape)}
+    return {"status":"success", "message":"Dataset updated", "values":range_name}
+
+@app.patch("/update_columns", description=r"Método interno que se encarga de leer los nombres de las columnas del exce, el estado y actualizar (si es necesario), el archivo de configuración en caso de haber cambios", tags=["Gestor Dataset"])
+async def update_num_status_col(api_key: str = Security(dependencies.get_api_key_)):
+    column_configuration = google_spreadsheet.get_all_columns_name_and_status()
+
+    def int_to_letter(number):
+        if 1 <= number <= 26:
+            # Subtracting 1 because indices start at 0
+            return string.ascii_uppercase[number - 1]
+        else:
+            return "Z"
+
+    range_name = {
+        'range_name': f'C9:{int_to_letter(len(column_configuration) + 2)}9999999999'
+    }
+
+    async with aiofiles.open(Path('app/config/config_column_status.json'),'w') as f:
+        await f.write(json.dumps(column_configuration, indent=4))
+
+    async with aiofiles.open(Path('app/config/general_config.json'), 'w') as f:
+        await f.write(json.dumps(range_name, indent=4))      
+
+    return {"status":"success", "message": "Information updated successfully"}
+
 
 @app.post("/make_backup", description="Make a backup of the dataset and send to S3 (AWS)", tags=["Gestor Dataset", "Pendiente a implementar"])
 async def make_backup(api_key: str = Security(dependencies.get_api_key_)):
     return ""
 
-@app.get("/get_cols_names")
-async def get_cls():
-    col_names = dataset_manager.get_column_names
-    col_names.insert(0, 'index')
-    return {"result":col_names}
 
 """
 @app.post("/api_set_conf", description="Metodo interno para aplicar la configuración")
