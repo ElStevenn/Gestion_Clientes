@@ -2,12 +2,17 @@
 
 from pydantic import BaseModel, Field, validator
 from typing import Optional, Dict, List,  ClassVar
-from . import datasets_manager
 from configparser import ConfigParser
 from pathlib import Path
-
+import aiofiles, json, asyncio
 from uuid import UUID
 
+async def read_schema_values():
+    async with aiofiles.open(Path('config/config_column_status.json'), 'r') as f:
+        content = await f.read()
+        values = json.loads(content)
+
+    return [val.get('value', None) for val in values]
 
 class ClientBaseData(BaseModel):
 
@@ -76,3 +81,11 @@ class SessionData(BaseModel):
 class UserLoginBasicBody(SessionData): 
     password: str # None encrypted password through this shema
 
+
+
+async def main():
+    values = await read_schema_values()
+    print(values)
+
+if __name__ == "__main__":
+    asyncio.run(main())

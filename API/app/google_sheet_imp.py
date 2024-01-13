@@ -174,7 +174,11 @@ class Document_CRUD():
     
     @feature_decorator
     def read_excel(self, range_name, enum=False):
-        """Read the range and return enumerated if requested, excluding the header."""        
+        """
+        Read the range and return enumerated if requested, excluding the header. 
+        
+        enum: enum parameter is used to enumerate/add index when it comes to read the excel
+        """        
         
         result = (
             self.service_.spreadsheets().values()
@@ -356,17 +360,13 @@ if __name__ == "__main__":
     SheetCRUD = Document_CRUD()
     SheetCRUD.Spreadsheet_ID = "1kpj7e08JrhsH4WKJhQeIYXWUh4k4Nc4vKSd-DuZqpVw"
 
-    range_name = "C9:Z9999999"
+    range_name = "C9:Z99999999"
     result = SheetCRUD.read_excel(range_name, enum=True)
     print(result)
     print(result.shape)
 
     # result = SheetCRUD.get_all_columns_name_and_status()
     # print(len(result))
-    
-    # SheetCRUD.Spreadsheet_ID = "1kpj7e08JrhsH4WKJhQeIYXWUh4k4Nc4vKSd-DuZqpVw"
-    # # SheetCRUD.auth()
+
     valueInputOption = "USER_ENTERED"
     range_name = "C19:K10"
-    # values = [["Pepero","García Olona","+34 640523319","08901","https://url.com","Mide más de 1.80","Solucionado","Vendido correctamente",""]]
-    # SheetCRUD.append(range_name, valueInputOption, final.tolist())

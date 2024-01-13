@@ -4,7 +4,7 @@
         "is_italic": false
     },
     {
-        "value": "Pajarera",
+        "value": "Apellido",
         "is_italic": false
     },
     {
@@ -17,7 +17,7 @@
     },
     {
         "value": "Url Registro",
-        "is_italic": false
+        "is_italic": true
     },
     {
         "value": "Otra Informaci\u00f3n",
@@ -25,7 +25,7 @@
     },
     {
         "value": "Estado",
-        "is_italic": true
+        "is_italic": false
     },
     {
         "value": "Respuesta",
@@ -33,6 +33,10 @@
     },
     {
         "value": "Columna Reservada",
+        "is_italic": true
+    },
+    {
+        "value": "Other column",
         "is_italic": false
     }
 ]

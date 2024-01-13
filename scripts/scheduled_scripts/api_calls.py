@@ -16,8 +16,9 @@ See status -> sudo systemctl status internalfeat.service
 
 """
 
-url1 = "http://inutil.top/update_dataset"
-url2 = "http://inutil.top/update_columns"
+url1 = "http://inutil.top/update_dataset_"
+url2 = "http://inutil.top/update_columns_"
+url3 = "http://inutil.top/enviar_cliente"
 header = {
    'Content-Type': 'application/json',
   'api-key':"rmpxCixzGRet81UnltZUBLdURHhnJy4QSltELa6HjU8="
@@ -37,9 +38,18 @@ def update_column_name_status():
     except:
         print("The server is currently turned off")
 
+def make_backup():
+    try:
+        response = requests.post(url3, headers=header)
+        print(f"Response: {response.status_code}, {response.text}")
+    except:
+        print("The server is currently turned off")
+
 
 schedule.every(2).seconds.do(read_data_call)
 schedule.every(1).minute.do(update_column_name_status)
+schedule.every(1).week.do(make_backup)
+
 while True:
     schedule.run_pending()
     time.sleep(1)

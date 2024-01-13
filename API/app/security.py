@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import os, re
+import os, re, boto3, random
 from jwt import decode, PyJWTError, encode
 import datetime
 from typing import Any, Dict
@@ -13,7 +13,8 @@ from cryptography.hazmat.primitives import padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
 import base64
-
+import asyncio
+from boto3.dynamodb.conditions import Key
 
 class AESEncryptionW_256:
     """
@@ -247,13 +248,49 @@ class AESEncryptionW_256:
         return self.unpad(padded_data)
         
 
-# stored_password = get_user_db(fake_users_db)
+def make_backup_s3():
+    """
+    Function to make backups into an S3 Bucket. Designed to store CSV files as security copies.
+    Utilizes S3 for its reliability and ease of use.
+    """
+
+    # Environment variables for AWS credentials and region
+    access_key = os.environ.get('ACCES_KEY')
+    secret_access_key = os.environ.get('SECRET_ACCES_KEY')
+    region_name = "us-east-1"
+
+    # Create S3 client
+    s3_client = boto3.client(
+        's3',
+        aws_access_key_id=access_key,
+        aws_secret_access_key=secret_access_key,
+        region_name=region_name
+    )
+
+    # S3 bucket name
+    bucket_name = 'paus-private-storage'
+
+    # File path to upload and target file name in S3
+    file_to_upload = Path('datasets/main_dataset_manager2.csv')
+    date = datetime.datetime.now()
+    target_key = f'cliente_gestor_backups/tabla_users_{date.day}-{date.month}-{date.year}.csv'
+
+    # Upload the file
+    s3_client.upload_file(str(file_to_upload), bucket_name, target_key)
+    print(f"File uploaded to S3 as {target_key}")
+  
+
+
+
+
 
 if __name__ == "__main__":
+    make_backup_s3()
+
 
     # Read 256 bites key
     
-    passowrd_provided = "123qweasd"
+    """passowrd_provided = "123qweasd"
 
     federico = get_user_db(fake_users_db2, 'invited')
     # federico_password = federico.hashed_password
@@ -275,4 +312,4 @@ if __name__ == "__main__":
 
     user = get_user_db(fake_users_db2, "federico")
     print(user)
-
+    """

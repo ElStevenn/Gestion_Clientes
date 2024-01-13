@@ -10,7 +10,7 @@ from fastapi.security import OAuth2PasswordRequestForm, APIKeyHeader
 # from fastapi_sessions.session_verifier import SessionVerifier
 from starlette.websockets import WebSocketDisconnect
 from app import schemas, dependencies, email_sender, email_estructure, datasets_manager, documentation_others, security, google_sheet_imp
-from app.security import aes_encrypter # Encrypter
+from app.security import aes_encrypter, make_backup_s3 # Encrypter and backup maker
 from app.redis_database import r,  get_range_name # Redis storage
 from fastapi_redis_session import deleteSession, getSession, getSessionId, getSessionStorage, setSession, SessionStorage
 from typing import Optional, Annotated, Any
@@ -95,15 +95,15 @@ def root_conf():
     return RedirectResponse("http://inutil.top/redoc")
 
 # Remove this function in the future :V
-@app.get("/docs")
+@app.get("/docs", tags=["Main"])
 def redic_redocs():
     return RedirectResponse("http://inutil.top/redoc")
 
 @app.post("/enviar_cliente", description=documentation_others.enviar_cliente_doc, tags=["Manejo de Clientes"])
-async def enviar_client(
-    request: schemas.ClientsRequest, 
+async def enviar_client( 
     background_tasks: BackgroundTasks,
-    api_key: str = Security(dependencies.get_api_key_)
+    api_key: str = Security(dependencies.get_api_key_),
+    *request: schemas.ClientsRequest
 ):
     mail_structure_dict = []
     client_mana = []
@@ -246,19 +246,16 @@ async def check_username(body_request: schemas.UserBody, api_key=str(Depends(dep
     return {"status":"succes", "message": f"User {body_request.username} is avariable","apikey_provided": api_key}
 
 @app.patch("/update_dataset_", description=r"Método interno para leer el excel y actualizar el dataset del servidor\n*header* -> {'api-key':string}", tags=["Gestor Dataset"])
-async def update_dataset_from_excel(api_key: str = Security(dependencies.get_api_key_)):
+async def update_dataset_from_excel(background_tasks: BackgroundTasks, api_key: str = Security(dependencies.get_api_key_)):
 
     range_name = dataset_manager.get_excel_range
-    try:
-        all_new_values = google_spreadsheet.read_excel(str(range_name), enum=True)
-
-    except Exception as e:
-        return {"status":"error", "message": f"An error ocurred: {e}"}
-    # await dataset_manager.update_dataset_status(all_new_values)
+    
+    all_new_values = google_spreadsheet.read_excel(str(range_name), enum=True)
+    await dataset_manager.update_dataset_status(all_new_values)
 
     return {"status":"success", "message":"Dataset updated", "values":range_name}
 
-@app.patch("/update_columns", description=r"Método interno que se encarga de leer los nombres de las columnas del exce, el estado y actualizar (si es necesario), el archivo de configuración en caso de haber cambios", tags=["Gestor Dataset"])
+@app.patch("/update_columns_", description=r"Método interno que se encarga de leer los nombres de las columnas del exce, el estado y actualizar (si es necesario), el archivo de configuración en caso de haber cambios", tags=["Gestor Dataset"])
 async def update_num_status_col(api_key: str = Security(dependencies.get_api_key_)):
     column_configuration = google_spreadsheet.get_all_columns_name_and_status()
 
@@ -270,7 +267,7 @@ async def update_num_status_col(api_key: str = Security(dependencies.get_api_key
             return "Z"
 
     range_name = {
-        'range_name': f'C9:{int_to_letter(len(column_configuration) + 2)}9999999999'
+        'range_name': f'C9:{int_to_letter(len(column_configuration) + 2)}99999999'
     }
 
     async with aiofiles.open(Path('app/config/config_column_status.json'),'w') as f:
@@ -282,9 +279,14 @@ async def update_num_status_col(api_key: str = Security(dependencies.get_api_key
     return {"status":"success", "message": "Information updated successfully"}
 
 
-@app.post("/make_backup", description="Make a backup of the dataset and send to S3 (AWS)", tags=["Gestor Dataset", "Pendiente a implementar"])
-async def make_backup(api_key: str = Security(dependencies.get_api_key_)):
-    return ""
+@app.post("/make_backup", description="Make a backup of the dataset and send to S3 (AWS)", tags=["Gestor Dataset"])
+async def make_backup(background_tasks: BackgroundTasks, api_key: str = Security(dependencies.get_api_key_)):
+    try:
+        # The task is added as a backround task
+        background_tasks.add_task(make_backup_s3)
+        return {"message":f"Backup completed sucessfully"}
+    except Exception as e:
+        return {"error":f"An error ocurred: {e}"}
 
 
 """
@@ -422,6 +424,7 @@ async def get_current_active_user(
 
 if __name__ == "__main__":
     # uvicorn main:app --host 0.0.0.0 --port 443
+    
     # search process -> sudo lsof -i :80 | 443
     uvicorn.run(
         "main:app",

@@ -35,9 +35,7 @@ class DTManage_manager():
         self.google_sheed_crud = Document_CRUD(conf['GOOGLE-SHEET']['spreadsheet_id'])
 
         try:
-            # Assuming get_column_names is a method that returns a list
-            self.columns_names = self.get_column_names
-            self.columns_names.insert(0, 'index')
+            self.columns_names = self.get_column_names(True)
         except Exception as e:
             # Handle exceptions related to Google Sheets API call
             print(f"Error retrieving column names: {e}")
@@ -53,12 +51,16 @@ class DTManage_manager():
 
         self.manage_dataset_numy = self.manage_dataset.to_numpy()
 
-    @property
-    def get_column_names(self):
+    def get_column_names(self, index=False):
         """get all column names from the Google spreadseet document"""
 
-        
-        return [val.get('value', None) for val in self.get_columns_ns]
+        if not index:
+            return [val.get('value', None) for val in self.get_columns_ns]
+        else:
+             
+            res = [val.get('value', None) for val in self.get_columns_ns]
+            res.insert(0, 'index')
+            return res
 
     def get_unique_values(self):
         """
@@ -67,11 +69,13 @@ class DTManage_manager():
         """
         all_unique_values = []
         name_unq_with_values = []
-        column_names = self.get_column_names
-        for i, pos in enumerate(self.get_columns_ns):
+        with open('app/config/config_column_status.json', 'r') as f:
+            column_names = json.loads(str(f.read()))
+        
+        for i, pos in enumerate(column_names):
             if pos.get('is_italic', None):
-                all_unique_values.append(i)
-                name_unq_with_values.append({'position': i, 'name': column_names[i]})
+                all_unique_values.append(i+1)
+                name_unq_with_values.append({'position': i+1, 'name': column_names[i]})
 
         return all_unique_values, name_unq_with_values
 
@@ -139,15 +143,15 @@ class DTManage_manager():
         """Convierte el dataset a JSON para su uso en frontend."""
         return self.manage_dataset.to_json(orient='records')
 
-    
     def get_xlsx_document(self, filename = "file.xlsx"):
         """devuvleve el docuento pero con la exensión xlsx"""
         
         return self.manage_dataset.to_excel(filename)
 
+
     @staticmethod
     def dic_writter(dic: dict):
-        """esta función es simplemente para definirel campo de información adicionar y ponerlo de forma legible"""
+        """esta función es simplemente para definirel campo de información adicional y ponerlo de forma legible"""
         if not dic:
             return ""
         try:
@@ -187,7 +191,7 @@ class DTManage_manager():
             for value, rows in value_to_rows.items():
                 if len(rows) > 1:
                     rows_str = ' y '.join(['la fila ' + str(row + 9) for row in rows])
-                    duplicate_messages.append(f"{rows_str} tiene el mismo valor '{value}' en la columna {column_names.get('name', None)[index]}")
+                    duplicate_messages.append(f"{rows_str} tiene el mismo valor \"{value}\" en la columna \"{self.get_column_names()[index-1]}\"")
 
         if duplicate_messages:
             self.google_sheed_crud.send_message(", ".join(duplicate_messages), 'warning', ['Error ocurrido'])
@@ -196,17 +200,15 @@ class DTManage_manager():
 
 
     async def update_dataset_status(self, new_values: np.ndarray):
-        try:
-            column_indic, column_name_inic = self.get_unique_values()
-            self.find_duplicate_rows_by_columns(new_values, column_indices = column_indic, column_names=column_name_inic)
-            self.manage_dataset = pd.DataFrame(new_values, columns=self.get_column_names)
+        column_indic, column_name_inic = self.get_unique_values()
+        self.find_duplicate_rows_by_columns(new_values, column_indices = column_indic, column_names=column_name_inic)
+        self.manage_dataset = pd.DataFrame(new_values, columns=self.get_column_names(True))
 
-            if not self.manage_dataset.empty:
-                await self.async_to_csv(self.manage_dataset, "datasets/main_dataset_manager2.csv")
-            else:
-                print("Error: DataFrame is empty, not writing to CSV.")
-        except Exception as e:
-            print(f"An error occurred: {e}")
+        if not self.manage_dataset.empty:
+            await self.async_to_csv(self.manage_dataset, "app/datasets/main_dataset_manager2.csv")
+        else:
+            print("Error: DataFrame is empty, not writing to CSV.")
+
 
     def to_csv_wrapper(self, df, filename, index, encoding):
         try:
@@ -222,14 +224,6 @@ class DTManage_manager():
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(None, self.to_csv_wrapper, df, filename, False, 'utf-8-sig')
 
-
-
-
-
-
-
 if __name__ == "__main__":
-    dat_manager = DTManage_manager()
-    name_pos_unq_val = dat_manager.get_unique_values()
-    print(name_pos_unq_val[0])
+    pass
 
