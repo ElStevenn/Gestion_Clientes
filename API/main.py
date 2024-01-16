@@ -6,11 +6,12 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.security import OAuth2PasswordRequestForm, APIKeyHeader
+from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 # from fastapi_sessions.session_verifier import SessionVerifier
 from starlette.websockets import WebSocketDisconnect
 from app import schemas, dependencies, email_sender, email_estructure, datasets_manager, documentation_others, security, google_sheet_imp
-from app.security import aes_encrypter, make_backup_s3 # Encrypter and backup maker
+from app.security import make_backup_s3, autenticate_user, create_access_token # Authenticate user, backup with S3 and token sessions
+from app.db_connection import crud
 from app.redis_database import r,  get_range_name # Redis storage
 from fastapi_redis_session import deleteSession, getSession, getSessionId, getSessionStorage, setSession, SessionStorage
 from typing import Optional, Annotated, Any
@@ -85,7 +86,6 @@ async def vadilation_exception_handler(request: Request, exc: RequestValidationE
         status_code=422,
         content={"detail": exc.errors(), "body": exc.body}
     )
-
 
 
 # ----------------------------- Distintas solicitudes de la API -----------------------------
@@ -225,25 +225,6 @@ async def api_conf_login(request: Request, redirect: Optional[str] = None):
     
     return templates.TemplateResponse('client_verify.html', {'request': request, 'redirect':redirect})
 
-@app.post("/check_username", description="Método interno para verificar si el usuario es correcto y existe", tags=["Main"])
-async def check_username(body_request: schemas.UserBody, api_key=str(Depends(dependencies.get_api_key))):
-
-    # if isinstance(api_key, dependencies.get_api_key):
-    #     return HTTPException(404, detail="You haven't provided any apikey")
-    
-    # Check if user exists or if is diabled
-    user = security.get_user_db(security.fake_users_db2, body_request.username)
-    if not user:
-        return {"status":"failed", "message": f"User \"{body_request.username}\" doesn't exists"}
-    if user.disabled:
-        return {"status":"failed", "message": f"Uses \"{body_request.username}\" is diabled"}
-
-    # Check if password is correct
-    if  user.password.decode('utf-8')  != body_request.password:
-        return {"status":"failed", "message": "Incorrect password"}
-
-
-    return {"status":"succes", "message": f"User {body_request.username} is avariable","apikey_provided": api_key}
 
 @app.patch("/update_dataset_", description=r"Método interno para leer el excel y actualizar el dataset del servidor\n*header* -> {'api-key':string}", tags=["Gestor Dataset"])
 async def update_dataset_from_excel(background_tasks: BackgroundTasks, api_key: str = Security(dependencies.get_api_key_)):
@@ -397,22 +378,26 @@ async def get_current_active_user(
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
 
-# @app.post("/token", description="Token endpoint for user authentication")
-# async def token_create(from_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
-#     user = security.get_user_db(security.fake_users_db2, from_data.username)
+@app.post("/token", description="Crear token de sessión de la forma más segura possible", tags=["Seguridad"])
+async def user_create_token(form_data: OAuth2PasswordRequestForm = Depends(), api_key: str = Security(dependencies.get_api_key_)):
+    # Handle Errors
 
-#     if not user:
-#         raise HTTPException(status_code=400, detail=f"Incorrect username or password")
-    
-#     user_val = await check_username(from_data)
-#     if user_val['status'] == 'failed':
-#         raise HTTPException(status_code=400, detail=user_val['message'])
-    
-#     # Generate a token (to be replaced with a real JWT or similar token)
-#     token = security.create_acces_token(data={"sub":user.username}, expire_delta=datetime.timedelta(days=30)) # At this moment, the token will expires in 30 days
+    # Authenticate user
+    auth_user, role = await autenticate_user(form_data.username, form_data.password)
+    if not auth_user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect Credentials",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
 
-#     return {"acces_token": token, "token_type": "bearer"}
- 
+    # Create token session
+    data = {"sub":form_data.username, "role": role}
+    expire_data = datetime.timedelta(days=120) # Token expires in 120 days
+    acces_token = create_access_token(data, expire_data)
+
+    return {"access_token":acces_token, "token_type": "bearer"}
+
 
 # @app.get("/users/me", description="add description here abot what this functiondoes")
 # async def read_ysers_me(

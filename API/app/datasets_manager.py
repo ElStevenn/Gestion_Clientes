@@ -26,7 +26,7 @@ class DTManage_manager():
 
     def __init__(self):
         # Directory for datasets
-        datasets_dir = Path("datasets")
+        datasets_dir = Path("./datasets")
         datasets_dir.mkdir(parents=True, exist_ok=True)
 
         # Full path to the CSV file
@@ -107,7 +107,7 @@ class DTManage_manager():
 
             self.manage_dataset[column_name] = column_values
 
-        path = Path("./datasets/main_dataset_manager.csv").resolve()
+        path = Path("datasets/main_dataset_manager.csv").resolve()
         self.manage_dataset.to_csv(path, index=False)
 
     async def add_new_row(self, row_data: list):
@@ -118,7 +118,7 @@ class DTManage_manager():
         new_row = pd.Series(row_data, index=self.manage_dataset.columns)
         self.manage_dataset = self.manage_dataset._append(new_row, ignore_index=True)
 
-        path = Path("./datasets/main_dataset_manager.csv").resolve()
+        path = Path("datasets/main_dataset_manager.csv").resolve()
         self.manage_dataset.to_csv(path, index=False)
 
     async def delete_row(self, row_index):
@@ -127,7 +127,7 @@ class DTManage_manager():
 
     def _delete_row_sync(self, row_index):
         self.manage_dataset.drop(row_index, inplace=True)
-        path = Path("./datasets/main_dataset_manager.csv").resolve()
+        path = Path("datasets/main_dataset_manager.csv").resolve()
         self.manage_dataset.to_csv(path, index=False)
 
     def query_row(self, token):
@@ -191,10 +191,10 @@ class DTManage_manager():
             for value, rows in value_to_rows.items():
                 if len(rows) > 1:
                     rows_str = ' y '.join(['la fila ' + str(row + 9) for row in rows])
-                    duplicate_messages.append(f"{rows_str} tiene el mismo valor \"{value}\" en la columna \"{self.get_column_names()[index-1]}\"")
+                    duplicate_messages.append(f"{rows_str} tiene el mismo valor \"{value}\" en la columna \"{self.get_column_names()[index-1]}\"") if value != '' else None
 
         if duplicate_messages:
-            self.google_sheed_crud.send_message(", ".join(duplicate_messages), 'warning', ['Error ocurrido'])
+            self.google_sheed_crud.send_message(", ".join(duplicate_messages), 'warning')
         else:
             self.google_sheed_crud.clear_cell_formatting()
 
@@ -202,13 +202,16 @@ class DTManage_manager():
     async def update_dataset_status(self, new_values: np.ndarray):
         column_indic, column_name_inic = self.get_unique_values()
         self.find_duplicate_rows_by_columns(new_values, column_indices = column_indic, column_names=column_name_inic)
-        self.manage_dataset = pd.DataFrame(new_values, columns=self.get_column_names(True))
+        try:
+            self.manage_dataset = pd.DataFrame(new_values, columns=self.get_column_names(True))
 
-        if not self.manage_dataset.empty:
-            await self.async_to_csv(self.manage_dataset, "app/datasets/main_dataset_manager2.csv")
-        else:
-            print("Error: DataFrame is empty, not writing to CSV.")
-
+            if not self.manage_dataset.empty:
+                await self.async_to_csv(self.manage_dataset, "datasets/main_dataset_manager2.csv")
+            else:
+                print("Error: DataFrame is empty, not writing to CSV.")
+        except ValueError:
+            self.google_sheed_crud.send_message("You've changed the column shape, this can take a while!", "message")
+            
 
     def to_csv_wrapper(self, df, filename, index, encoding):
         try:
@@ -224,6 +227,15 @@ class DTManage_manager():
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(None, self.to_csv_wrapper, df, filename, False, 'utf-8-sig')
 
+
+async def main():
+    np_values = np.array([
+        ['1', 'fs', 'dfdsfds', 'fdf', 'fsd', 'sf', 'fdsfds', 'f', 'sfs', 'wre', '']
+    ])
+    dat_manager = DTManage_manager()
+    await dat_manager.update_dataset_status(np_values)
+
 if __name__ == "__main__":
-    pass
+    asyncio.run(main())
+
 

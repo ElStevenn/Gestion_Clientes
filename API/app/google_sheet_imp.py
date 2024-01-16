@@ -188,18 +188,16 @@ class Document_CRUD():
         try:
             pre_result = result.get('values', [])
         except Exception as e:
-            self.send_message(f"An error occurred: {e}")
+            self.send_message(f"An error occurred: {e}", "error")
             return np.array([])
-        
+
+        # Asign num columns
+        n_cols = self.get_num_cols(range_name)
         # Check if pre_result is empty and return an empty array if so
         if not pre_result:
             return np.array([])
-        
-        # Find the maximum number of columns in any row
-        max_cols = max(len(row) for row in pre_result)
 
         # Create a result array with an additional column for enumeration if needed
-        n_cols = max_cols + 1 if enum else max_cols
         result_ = np.full((len(pre_result), n_cols), '', dtype=object)
 
         # Populate the result array
@@ -214,36 +212,53 @@ class Document_CRUD():
 
         return np.array(result_)
 
-
-
+    def get_num_cols(self, range_name) -> int:
+        pattern = r"([A-Z])\d:([A-Z])\d+"
+        match = re.search(pattern, str(range_name))
+        if match:
+            letters = match.groups()
+            return int((ord(letters[1].upper()) - 64) - (ord(letters[0].upper()) - 64)) + 2
+        else:
+            self.send_message("Something was wrong when it comes to read the range", "error")
+            return None
     @feature_decorator
-    def send_message(self, message, type = "warning", error_message=["An error ocurred"], ):
-        range_name = "B4:B5"
+    def send_message(self, message, type = "warning", error_message=None):
+        range_name = "B4:B5"  # Range covers cells B4 and B5
+
+        if type == "warning":
+            background_color = [252, 186, 3]
+            error_message = "Something has happened" if error_message is None else error_message
+        elif type == "error":
+            background_color = [252, 3, 3]
+            error_message = "An error ocurred" if error_message is None else error_message
+        elif type == "message":
+            error_message = "A message recived" if error_message is None else error_message
+            background_color = [61, 252, 3]
+        else:
+            error_message = "Something has happended" if error_message is None else error_message
+            background_color = [3, 11, 252]
+
         values = [
-            [error_message[0]],
-            [message]
+            [error_message],  # First row (B4)
+            [message]         # Second row (B5)
         ]
 
         data = [
             {"range": range_name, "values": values}
         ]
 
-        if type == "warning":
-            background_color = [252, 186, 3]
-        elif type == "error":
-            background_color = [252, 3, 3]
-        elif type == "message":
-            background_color = [61, 252, 3]
-        else:
-            background_color = [3, 11, 252]
-
         body = {"valueInputOption": "USER_ENTERED", "data": data}
-        result = (
-            self.service_.spreadsheets().values()
-            .batchUpdate(spreadsheetId=self.Spreadsheet_ID, body=body)
-            .execute()
-        )
-        print(f"{(result.get('totalUpdatedCells'))} cells updated.")
+        
+        try:
+            result = (
+                self.service_.spreadsheets().values()
+                .batchUpdate(spreadsheetId=self.Spreadsheet_ID, body=body)
+                .execute()
+            )
+            print(f"{result.get('totalUpdatedCells')} cells updated.")
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            return None
 
         border_style = {"style": "SOLID", "width": 1, "color": {"red": 0, "green": 0, "blue": 0, "alpha": 1}}
         
@@ -298,7 +313,7 @@ class Document_CRUD():
 
         return result.get('totalUpdatedCells', None)
 
-
+    @feature_decorator
     def clear_cell_formatting(self):
         sheet_id = self.get_sheet_id("pau's spreadsheet")  # Ensure this returns the correct sheet ID
         # Define the range to clear
@@ -319,15 +334,13 @@ class Document_CRUD():
             "requests": requests
         }
 
-        try:
-            # Make the API call to batchUpdate
-            response = self.service_.spreadsheets().batchUpdate(
-                spreadsheetId=self.Spreadsheet_ID,  # Ensure this is the correct spreadsheet ID
-                body=body
-            ).execute()
-            print(f"Cleared cell formatting: {response}")
-        except Exception as e:
-            print(f"An error occurred: {e}")
+        # Make the API call to batchUpdate
+        response = self.service_.spreadsheets().batchUpdate(
+            spreadsheetId=self.Spreadsheet_ID,  # Ensure this is the correct spreadsheet ID
+            body=body
+        ).execute()
+        print(f"Cleared cell formatting: {response}")
+
 
     @feature_decorator
     def get_all_columns_name_and_status(self):
@@ -360,13 +373,11 @@ if __name__ == "__main__":
     SheetCRUD = Document_CRUD()
     SheetCRUD.Spreadsheet_ID = "1kpj7e08JrhsH4WKJhQeIYXWUh4k4Nc4vKSd-DuZqpVw"
 
-    range_name = "C9:Z99999999"
-    result = SheetCRUD.read_excel(range_name, enum=True)
+    range_name = "C9:L99999999"
+    result = SheetCRUD.read_excel(range_name, True)
     print(result)
-    print(result.shape)
 
-    # result = SheetCRUD.get_all_columns_name_and_status()
-    # print(len(result))
+  
 
     valueInputOption = "USER_ENTERED"
     range_name = "C19:K10"
