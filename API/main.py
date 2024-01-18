@@ -10,9 +10,9 @@ from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 # from fastapi_sessions.session_verifier import SessionVerifier
 from starlette.websockets import WebSocketDisconnect
 from app import schemas, dependencies, email_sender, email_estructure, datasets_manager, documentation_others, security, google_sheet_imp
-from app.security import make_backup_s3, autenticate_user, create_access_token # Authenticate user, backup with S3 and token sessions
+from app.security.backups import make_backup_s3 # Backups
+from app.security.encryption import autenticate_user, create_access_token
 from app.db_connection import crud
-from app.redis_database import r,  get_range_name # Redis storage
 from fastapi_redis_session import deleteSession, getSession, getSessionId, getSessionStorage, setSession, SessionStorage
 from typing import Optional, Annotated, Any
 from configparser import ConfigParser
@@ -350,7 +350,7 @@ async def redirect_uri(request: Request):
         # Handle the case where there is no code in the query string
         return {"error": "No authorization code provided"}
 
-
+'''
 async def get_current_user(token: str = Depends(dependencies.oauth2_scheme)):
     """This function is designed to decode a token and return the corresponding user"""
     user_dict = security.decode_token(token)
@@ -377,13 +377,13 @@ async def get_current_active_user(
     if current_user.disabled:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
-
+'''
 @app.post("/token", description="Crear token de sessión de la forma más segura possible", tags=["Seguridad"])
 async def user_create_token(form_data: OAuth2PasswordRequestForm = Depends(), api_key: str = Security(dependencies.get_api_key_)):
     # Handle Errors
 
     # Authenticate user
-    auth_user, role = await autenticate_user(form_data.username, form_data.password)
+    auth_user, role, id_ = await autenticate_user(form_data.username, form_data.password)
     if not auth_user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -392,19 +392,16 @@ async def user_create_token(form_data: OAuth2PasswordRequestForm = Depends(), ap
         )
 
     # Create token session
-    data = {"sub":form_data.username, "role": role}
+    data = {"sub":form_data.username, "role": role, "id":str(id_)}
     expire_data = datetime.timedelta(days=120) # Token expires in 120 days
     acces_token = create_access_token(data, expire_data)
 
     return {"access_token":acces_token, "token_type": "bearer"}
 
 
-# @app.get("/users/me", description="add description here abot what this functiondoes")
-# async def read_ysers_me(
-#     current_user: Annotated[security.User, Depends(get_current_active_user)]
-# ):
-#     return current_user
-
+@app.get("/verify_session/{token}")
+async def verify_session(token: str):
+    return ""
 
 
 if __name__ == "__main__":
