@@ -126,5 +126,5 @@ class Enviroment_variable:
 
 if __name__ == "__main__":
     env_variable = Enviroment_variable()
-    env_variable["SECRET_KEY"] = "a548807d-8197-4431-b11b-10d0d5af66d1"
-    print(env_variable["SECRET_KEY"])
+    # env_variable["SECRET_ACCES_KEY"] = "3wxAinYVqrtkYou3/131pdu8Fp1tlnBCHVQl7OcY"
+    print(env_variable["SECRET_ACCES_KEY"])
