@@ -58,6 +58,8 @@ class Enviroment_variable:
     """
     Class used to create environment variables and encrypt them.
     """
+
+    # Path where the variables are saved (I'd recomend absolute path)
     KEY_PATH = Path("/home/ubuntu/certificates/secure_data")  # Change this as needed
 
     def __init__(self):
@@ -105,7 +107,10 @@ class Enviroment_variable:
             encrypted_variable = base64.b64decode(encrypted_variable_b64)
 
             return self.aes.decrypt(encrypted_variable).decode()
-        except (FileNotFoundError, KeyError, json.JSONDecodeError, ValueError):
+        except FileNotFoundError:
+            raise FileNotFoundError("You need to provide the path where the variables has to be saved")
+            
+        except (KeyError, json.JSONDecodeError, ValueError):
             return None
 
 
@@ -126,5 +131,5 @@ class Enviroment_variable:
 
 if __name__ == "__main__":
     env_variable = Enviroment_variable()
-    # env_variable["SECRET_ACCES_KEY"] = "3wxAinYVqrtkYou3/131pdu8Fp1tlnBCHVQl7OcY"
-    print(env_variable["SECRET_ACCES_KEY"])
+    # env_variable["SQLALCHEMY_DATABASE_URL"] = "postgresql+asyncpg://postgres:mierda69@185.254.206.129:5432/paudatabase"
+    print(env_variable["SQLALCHEMY_DATABASE_URL"])

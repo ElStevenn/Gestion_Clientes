@@ -5,16 +5,16 @@ from jwt import encode, decode
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 from typing import Any, Dict
 from base64 import b64encode, b64decode
-from ..db_connection.crud import get_user
-from ..db_connection import schemas, models
-from ..db_connection.database import async_engine, AsyncSession
+from app.db_connection.crud import get_user
+from app.db_connection import schemas, models
+from app.db_connection.database import async_engine, AsyncSession
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.future import select
 from pathlib import Path
 from Cryptodome.Cipher import AES
 from Cryptodome.Random import get_random_bytes
-from .enviroment import Enviroment_variable
-import hashlib
+from app.security.enviroment import Enviroment_variable
+import hashlib, asyncio
 
 
 """
@@ -117,10 +117,10 @@ async def check_session(db: AsyncSession, username: str, provided_password: str)
 
     username = user_data[1]
     enc_dict = {
-    'cipher_text': b64encode(user_data[3]).decode('utf-8'),
-    'salt': b64encode(user_data[5]).decode('utf-8'),
-    'nonce': b64encode(user_data[6]).decode('utf-8'),
-    'tag': b64encode(user_data[7]).decode('utf-8')
+        'cipher_text': b64encode(user_data[3]).decode('utf-8'),
+        'salt': b64encode(user_data[5]).decode('utf-8'),
+        'nonce': b64encode(user_data[6]).decode('utf-8'),
+        'tag': b64encode(user_data[7]).decode('utf-8')
     }
 
     # Decrypt password and check if password is corret
@@ -133,6 +133,7 @@ async def check_session(db: AsyncSession, username: str, provided_password: str)
     except ValueError:
         raise ValueError("Password provided is wrong")
 
+"""Put this couple of function in other file please"""
 async def autenticate_user(username: str, password: str):
     try:
         async with AsyncSession(async_engine) as db:
@@ -141,6 +142,14 @@ async def autenticate_user(username: str, password: str):
     except ValueError:
         return False
 
+async def authenticate_token(token: str):
+    decoded_token = decode_token(token)
+
+    user = decoded_token.get('sub', None)
+    role = decoded_token.get('role', None)
+    id_ = decoded_token.get('id', None)
+
+    return user, role, id_
 
 async def create_user(db: AsyncSession, user_request: schemas.CreateUser):
     # Encrypt password and save the user
@@ -175,22 +184,9 @@ async def create_user(db: AsyncSession, user_request: schemas.CreateUser):
             return {"result": "error", "message": "An unknown integrity error occurred."}
 
 
+async def main():
+    token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJyb290Iiwicm9sZSI6Im93bmVyIiwiaWQiOiI5YzY3ZTRiMC0yODIxLTQxN2MtOGNjNC02MjY5MmQyYTg0YjEiLCJleHAiOjE3MTU5NzIwNDN9.L5lgonhwqvyApbLg293UZK1pjgRU9UrAJlIlj0L1TsE"
+    await authenticate_token(token)
 
 if __name__ == "__main__":
-    '''paus_password = "mierda69"
-    password_owner = "Pau_Mateu"
-
-    cipher_text, salt, nonce, tag = encript_256.encrypt(paus_password, paus_password)
-    enc_dict = {
-        'cipher_text': b64encode(cipher_text).decode('utf-8'),
-        'salt': b64encode(salt).decode('utf-8'),
-        'nonce': b64encode(nonce).decode('utf-8'),
-        'tag': b64encode(tag).decode('utf-8')
-    }
-    print(enc_dict)
-
-    provided_password = "pollo"
-    decrypted_password = encript_256.decypt(enc_dict, provided_password)
-    print(bytes.decode(decrypted_password))
-    '''
-    pass
+   asyncio.run(main())

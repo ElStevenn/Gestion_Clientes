@@ -10,8 +10,8 @@ from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 # from fastapi_sessions.session_verifier import SessionVerifier
 from starlette.websockets import WebSocketDisconnect
 from app import schemas, dependencies, email_sender, email_estructure, datasets_manager, documentation_others, security, google_sheet_imp
-from app.security.backups import make_backup_s3 # Backups
-from app.security.encryption import autenticate_user, create_access_token
+from app.security.backups import make_backup_s3
+from app.security.encryption import autenticate_user, create_access_token, authenticate_token
 from app.db_connection import crud
 from fastapi_redis_session import deleteSession, getSession, getSessionId, getSessionStorage, setSession, SessionStorage
 from typing import Optional, Annotated, Any
@@ -94,7 +94,7 @@ async def vadilation_exception_handler(request: Request, exc: RequestValidationE
 def root_conf():
     return RedirectResponse("http://inutil.top/redoc")
 
-# Remove this function in the future :V
+# Remove this function in the future ->
 @app.get("/docs", tags=["Main"])
 def redic_redocs():
     return RedirectResponse("http://inutil.top/redoc")
@@ -183,21 +183,19 @@ async def api_conf(request: Request):
         )
 
 @app.post("/login", tags=["Sessions"])
-async def login(request_body:schemas.UserBody ,api_key = str(Depends(dependencies.get_api_key))):
+async def login(request_body:schemas.UserTokenLogin ,api_key = str(Depends(dependencies.get_api_key))):
     # Autenticate user
+    user, role, id_ = await authenticate_token(request_body.token)
 
+    # Vadilate credentials
+    """
+        Make here the function to vadilate credentials
+    """
 
-    # Autenticate useer and password:
-    authenticated_user = await check_username(request_body)
     if authenticated_user['status'] == 'failed':
         return {"status":"failed", "message": authenticated_user['message']}
 
 
-    # session_boddy = schemas.SessionBoddy(
-    #     session_id=uuid4(),
-    #     username=request_body.username
-    # )
-    # session_response = await set(session_boddy=session_boddy)
 
     return {"status":"sucsess","message": "Session has been created succesfuluy"}
 
@@ -324,7 +322,7 @@ async def webdocket_endpoint(websocket: WebSocket):
 
 # ------------------- OAuth Autentication ----------------------------------------------------------------
 
-@app.get("/code", description="Redirect URI for API authentication", tags=["Pendiente a implementar"])
+@app.get("/code", description="Redirect URI for API authentication", tags=["Seguridad"])
 async def redirect_uri(request: Request):
  # Extract the authorization code from the request
     code = request.query_params.get('code')

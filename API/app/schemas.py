@@ -81,6 +81,8 @@ class SessionData(BaseModel):
 class UserLoginBasicBody(SessionData): 
     password: str # None encrypted password through this shema
 
+class UserTokenLogin(SessionData):
+    token: str
 
 
 async def main():
