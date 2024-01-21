@@ -91,14 +91,6 @@
                     <label for="apikey">Apikey:</label>
                     <input type="text" id="apikey" name="apikey" value="{{ apikey }}">
                 </div>
-                <div class="config-item">
-                    <label for="host">Host:</label>
-                    <input type="text" id="host" name="host" value="{{ host }}">
-                </div>
-                <div class="config-item">
-                    <label for="port">Port:</label>
-                    <input type="number" id="port" name="port" value="{{ port }}">
-                </div>
             </div>
 
             <div class="section">
@@ -120,15 +112,6 @@
             <div class="section">
                 <h3>[OTROS]</h3>
                 <div class="config-item">
-                    <label for="max_columnas_frontend">Número máximo de filas de la tabla de clientes:</label>
-                    <input type="number" id="max_columnas_frontend" name="max_columnas_frontend" value="{{ max_columnas_frontend }}">
-                </div>
-                <div class="config-item">
-                    <label for="nombre_columna_reservada">Nombre de la columna reservada:</label>
-                    <input type="text" id="nombre_columna_reservada" name="nombre_columna_reservada" value="{{ nombre_columna_reservada }}">
-                </div>
-<<<<<<< HEAD
-                <div class="config-item">
                     <label for="spreadsheetID">ID del spreadsheet:</label>
                     <input type="text" id="spreadsheetID" name="spreadsheetID" value="{{ spreadsheetID }}">
                 </div>
@@ -136,10 +119,7 @@
 
           
 
-=======
-            </div>
 
->>>>>>> d6981f63b4066d5350a4a69c7248452b31c5d066
             <div class="section">
                 <h3>[OAUTH2]</h3>
                 <div class="config-item">
@@ -157,11 +137,6 @@
                 <button type="submit" id="buttonSubmit">Guardar Cambios</button>
                 <button class="crear_token">Crear token</button>
             </div>
-<<<<<<< HEAD
-
-
-=======
->>>>>>> d6981f63b4066d5350a4a69c7248452b31c5d066
             
             <script src="{{ url_for('static', path='/js/js2.js') }}"></script>
         </form>

@@ -52,9 +52,6 @@ class ApiConf(BaseModel):
     app_password: Optional[str] = config.get('EMAIL', 'app_password', fallback=None)
     email_reciver: Optional[str] = config.get('EMAIL', 'email_reciver', fallback=None) 
 
-    max_columns_frontend: Optional[str] = config.get('OTROS', 'max_columnas_frontend', fallback=None)
-    name_reserved_column: Optional[str] = config.get('OTROS', 'nombre_columna_reservada', fallback=None)
-
     # auth2
     username: Optional[str] = config.get('API-OAUTH2', 'username', fallback=None)
     password: Optional[str] = config.get('API-OAUTH2', 'password', fallback=None)
@@ -81,8 +78,8 @@ class SessionData(BaseModel):
 class UserLoginBasicBody(SessionData): 
     password: str # None encrypted password through this shema
 
-class UserTokenLogin(SessionData):
-    token: str
+class UserTokenLogin(BaseModel):
+    token_beaber: str
 
 
 async def main():

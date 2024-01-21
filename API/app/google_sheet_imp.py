@@ -10,6 +10,7 @@ import os.path
 import re
 import numpy as np
 import pandas as pd
+from typing import Optional, Tuple
 
 # Get credentials from this file
 credentials_file = "/home/ubuntu/certificates/google_cloud_credentials/credentials.json"
@@ -163,7 +164,39 @@ class Document_CRUD():
         except HttpError as error:
             print(f"An error occurred: {error}")
             return error
-        
+    
+    def column_to_index(column: str):
+        """Convert a spreadsheet column letter to a zero-based index."""
+        # return -> int
+        index = 0
+        for char in column:
+            index = index * 26 + (ord(char.upper()) - ord('A')) + 1
+        return index - 1  # zero-based index
+
+    def calc_index(self, range_name: Optional[str] = "B1:B2"):
+        """
+        Calculate the start and end indices for rows and columns based on a range in A1 notation.
+
+        Returns:
+            tuple: (startRowIndex, endRowIndex, startColumnIndex, endColumnIndex)
+        """
+        # Regex to extract the column letters and row numbers from the range
+        match = re.match(r'([A-Z]+)(\d+):([A-Z]+)(\d+)', range_name)
+        if not match:
+            raise ValueError("Invalid range. Please use a range in A1 notation (e.g., 'B1:B2').")
+
+        start_col, start_row, end_col, end_row = match.groups()
+
+        # Convert column letters to zero-based indices using the static method
+        start_col_index = Document_CRUD.column_to_index(start_col)
+        end_col_index = Document_CRUD.column_to_index(end_col)
+
+        # Convert row numbers to zero-based indices
+        start_row_index = int(start_row) - 1
+        end_row_index = int(end_row) - 1
+
+        return (start_row_index, end_row_index, start_col_index, end_col_index)
+
     def extract_row_index(self, range_string):
         # Pattern to match the row number in the range string (e.g., '5' in 'Sheet1!A5:Z5')
         match = re.search(r'(\d+)', range_string.split('!')[1])
@@ -221,9 +254,9 @@ class Document_CRUD():
         else:
             self.send_message("Something was wrong when it comes to read the range", "error")
             return None
+        
     @feature_decorator
-    def send_message(self, message, type = "warning", error_message=None):
-        range_name = "B4:B5"  # Range covers cells B4 and B5
+    def send_message(self, message, type = "warning", error_message=None, range_name = "B4:B5"):
 
         if type == "warning":
             background_color = [252, 186, 3]
@@ -261,16 +294,17 @@ class Document_CRUD():
             return None
 
         border_style = {"style": "SOLID", "width": 1, "color": {"red": 0, "green": 0, "blue": 0, "alpha": 1}}
-        
+        index = self.calc_index(range_name)
+
         requests = [
             {
                 "updateBorders": {
                     "range": {
                         "sheetId": self.get_sheet_id("pau's spreadseet"), 
-                        "startRowIndex": 3,  # Adjust as needed
-                        "endRowIndex": 5,    # Adjust as needed
-                        "startColumnIndex": 1,  # B column
-                        "endColumnIndex": 2  # up to but not including C column
+                        "startRowIndex": index[0],
+                        "endRowIndex": index[1],
+                        "startColumnIndex": index[2],
+                        "endColumnIndex": index[3] 
                     },
                     "top": border_style,
                     "bottom": border_style,
@@ -284,10 +318,10 @@ class Document_CRUD():
                 "repeatCell": {
                     "range": {
                         "sheetId": self.get_sheet_id("pau's spreadsheet"),
-                        "startRowIndex": 3,  
-                        "endRowIndex": 4,
-                        "startColumnIndex": 1,  
-                        "endColumnIndex": 2
+                        "startRowIndex": index[0],
+                        "endRowIndex": index[1],
+                        "startColumnIndex": index[2],
+                        "endColumnIndex": index[3] 
                     },
                     "cell": {
                         "userEnteredFormat": {
@@ -349,7 +383,7 @@ class Document_CRUD():
 
         """
 
-        range_name = "C8:Z8" # Change this as needed
+        range_name = "C8:Z8" # This is the range where the function read, change if is needed
         sheet = self.service_.spreadsheets()
         data_format_result = sheet.get(spreadsheetId=self.Spreadsheet_ID, ranges=range_name,
                    fields='sheets(data(rowData(values(effectiveFormat(textFormat(italic))))))').execute()
@@ -357,13 +391,22 @@ class Document_CRUD():
         result = sheet.values().get(spreadsheetId=self.Spreadsheet_ID, range=range_name).execute().get('values', [])[0]
         
         _result = []
-        for i, value in enumerate(data_format_result.get('sheets', [])[0].get('data', [])[0].get('rowData', [])[0].get('values', [])):
-            _result.append({
-                'value': result[i],
-                'is_italic': True if value.get('effectiveFormat', None).get('textFormat', None).get('italic', None) else False
-                # We can add more states here as needed 
-            })
-
+        print(len(result))
+        print(len(data_format_result.get('sheets', [])[0].get('data', [])[0].get('rowData', [])[0].get('values', [])))
+        """
+        try:
+            for i, value in enumerate(data_format_result.get('sheets', [])[0].get('data', [])[0].get('rowData', [])[0].get('values', [])):
+                _result.append({
+                    'value': result[i],
+                    'is_italic': True if value.get('effectiveFormat', None).get('textFormat', None).get('italic', None) else False
+                    # We can add more states here as needed 
+                })
+        except IndexError:
+            # In case the user fo
+            self.send_message("Asegurate de quitar el italic para que no lo detecte como campo, es probable que acabes de quitar una columna", "error", "Error de campo", range_name="B1:B2")
+            raise IndexError("There is a cell in the column name definition, where is italic, make sure to remove the \"italic\" in the cell")
+            
+        """
         return _result
         
 
@@ -374,7 +417,7 @@ if __name__ == "__main__":
     SheetCRUD.Spreadsheet_ID = "1kpj7e08JrhsH4WKJhQeIYXWUh4k4Nc4vKSd-DuZqpVw"
 
     range_name = "C9:L99999999"
-    result = SheetCRUD.read_excel(range_name, True)
+    result = SheetCRUD.get_all_columns_name_and_status()
     print(result)
 
   

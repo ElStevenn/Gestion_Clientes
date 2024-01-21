@@ -18,7 +18,7 @@ import hashlib, asyncio
 
 
 """
-Encryption class
+Encryption class to make sure the password with AES256, Token generation
 
 """
 env_variables = Enviroment_variable()

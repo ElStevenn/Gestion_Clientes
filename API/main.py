@@ -163,55 +163,49 @@ async def admin_accept_response(request: Request, id: Optional[str] = "" , api_k
     return templates.TemplateResponse('client_verifier_page.html', {"request": request, "variable1": "this is a great variable"})
 
 
-@app.get("/descargar_tabla", description="Este método es interno, y es usado para mandar al frontend el para descargar la tabla", tags=["Gestor Dataset"])
-async def download_table(filename: Optional[str] = "Tabla_clientes.xlsx" , api_key: str = Security(dependencies.get_api_key_)):
+@app.get("/descargar_tabla/{token_beaber}", description="Este método es interno, y es usado para mandar al frontend el para descargar la tabla", tags=["Gestor Dataset"])
+async def download_table(token_beaber: str, filename: Optional[str] = "Tabla_clientes.xlsx"):
 
     return FileResponse(dataset_manager.get_xlsx_document(filename))
 
 
+
 @app.get("/apiconf", response_class=HTMLResponse, description="Pequeño panel html para configurar la API (hacer si me da tiempo)", tags=["Main"])
 async def api_conf(request: Request):
-    
-    # Poner aquí la redirección en vez de en el frontend
+    # Get cookie to see if thr client has the correct token
+    cookies = request.cookies
+    if not cookies:
+        # In case the user doesn't have any cookie (that means the user has to login)
+        return RedirectResponse('http://inutil.top/api_conf_login')
+
+
 
     return templates.TemplateResponse(
         'api_conf.html', {
             'request': request, 'apikey':api_key, 'email_sender': config['EMAIL']['email_sender'], 'host':host, 'port': port,'app_password':config['EMAIL']['app_password'],
-            'email_reciver':config['EMAIL']['email_reciver'], 'max_columnas_frontend': config['OTROS']['max_columnas_frontend'], 'nombre_columna_reservada': config['OTROS']['nombre_columna_reservada'],
-            'username': config['API-OAUTH2']['username'], 'password': config['API-OAUTH2']['password'], 'spreadsheetID': config['GOOGLE-SHEET']['spreadsheet_id']
+            'email_reciver':config['EMAIL']['email_reciver'], 'username': config['API-OAUTH2']['username'],
+            'password': config['API-OAUTH2']['password'], 'spreadsheetID': config['GOOGLE-SHEET']['spreadsheet_id']
             }
         )
 
 @app.post("/login", tags=["Sessions"])
-async def login(request_body:schemas.UserTokenLogin ,api_key = str(Depends(dependencies.get_api_key))):
+async def login(request_body:schemas.UserTokenLogin, api_key: str = Security(dependencies.get_api_key_)):
     # Autenticate user
-    user, role, id_ = await authenticate_token(request_body.token)
+    username, role, id_ = await authenticate_token(request_body.token_beaber)
 
     # Vadilate credentials
-    """
-        Make here the function to vadilate credentials
-    """
+    result = await crud.vadilate_user_credentials(username, role, id_)
 
-    if authenticated_user['status'] == 'failed':
-        return {"status":"failed", "message": authenticated_user['message']}
+    if result:
+        return {"status":"sucsess","message": f"Session has been created succesfuluy", "user_data":[username, role, id_]}
 
-
-
-    return {"status":"sucsess","message": "Session has been created succesfuluy"}
-
-@app.post("/get-session", description="Obtener la session actual", tags=["Sessions"])
-async def get(session: Any = Depends(getSession)):
-    return session
-
-
-@app.post("/set-session", description="Crear una nueva session", tags=["Sessions"])
-async def set(request: Request, response: Response, sessionStorage: SessionStorage = Depends(getSessionStorage)):
-    sessionData = await request.json()
-    sessionId = setSession(response, sessionData, sessionStorage)
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            details="user not authorized",
+            headers={'WWW-Authenticate': 'Bearer'}
+        )
     
-    response.set_cookie(key="session_id", value=sessionId, httponly=True, secure=False, samesite='Lax')
-    return {"session": f"{sessionData}", "message":f"session has been created succesfully", "session_id":sessionId}
-
 
 @app.delete("/expire-session", description="Expire the current session in the redis storage and frontend", tags=["Sessions"])
 async def expire_session(sessionId: str = Depends(getSessionId), sessionStorage: SessionStorage = Depends(getSessionStorage)):
@@ -224,7 +218,7 @@ async def api_conf_login(request: Request, redirect: Optional[str] = None):
     return templates.TemplateResponse('client_verify.html', {'request': request, 'redirect':redirect})
 
 
-@app.patch("/update_dataset_", description=r"Método interno para leer el excel y actualizar el dataset del servidor\n*header* -> {'api-key':string}", tags=["Gestor Dataset"])
+@app.patch("/update_dataset__", description=r"Método interno para leer el excel y actualizar el dataset del servidor\n*header* -> {'api-key':string}", tags=["Gestor Dataset"])
 async def update_dataset_from_excel(background_tasks: BackgroundTasks, api_key: str = Security(dependencies.get_api_key_)):
 
     range_name = dataset_manager.get_excel_range
@@ -234,7 +228,7 @@ async def update_dataset_from_excel(background_tasks: BackgroundTasks, api_key: 
 
     return {"status":"success", "message":"Dataset updated", "values":range_name}
 
-@app.patch("/update_columns_", description=r"Método interno que se encarga de leer los nombres de las columnas del exce, el estado y actualizar (si es necesario), el archivo de configuración en caso de haber cambios", tags=["Gestor Dataset"])
+@app.patch("/update_columns__", description=r"Método interno que se encarga de leer los nombres de las columnas del exce, el estado y actualizar (si es necesario), el archivo de configuración en caso de haber cambios", tags=["Gestor Dataset"])
 async def update_num_status_col(api_key: str = Security(dependencies.get_api_key_)):
     column_configuration = google_spreadsheet.get_all_columns_name_and_status()
 
@@ -268,17 +262,21 @@ async def make_backup(background_tasks: BackgroundTasks, api_key: str = Security
         return {"error":f"An error ocurred: {e}"}
 
 
-"""
-@app.post("/api_set_conf", description="Metodo interno para aplicar la configuración")
-async def set_api_cong(request: schemas.ApiConf, api_key=str(Depends(dependencies.get_api_key))):
-    # Aplicar OAUTH2 al acceder a esta función! importantísimo
+@app.post("/api_set_conf/{token_beaber}", description="Metodo interno para aplicar la configuración", tags=["Sessions"])
+async def set_api_cong(token_beaber: str, request: schemas.ApiConf, api_key: str = Security(dependencies.get_api_key_)):
 
+    # Autenticate token
+    username, role, id_ = await authenticate_token(token_beaber)
 
-    # Vadilar si los datos sean correctos ? 
-    
-
+    # Vadilate credentials
+    result = await crud.vadilate_user_credentials(username, role, id_)
+    if result[0] != id_:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="EL token es incorrecto",
+        )
    
-    if True:  # ? true aplicar cambios : false lanzar error diciendo que los cambios son incorrectos
+    if True: 
         config['DEFAULT']['apikey'] = request.apikey
         config['DEFAULT']['host'] = request.host
         config['DEFAULT']['port'] = request.port
@@ -286,9 +284,6 @@ async def set_api_cong(request: schemas.ApiConf, api_key=str(Depends(dependencie
         config['EMAIL']['email_sender'] = request.email_sender
         config['EMAIL']['app_password'] = request.app_password
         config['EMAIL']['email_reciver'] = request.email_reciver
-
-        config['OTROS']['max_columnas_frontend'] = request.max_columns_frontend
-        config['OTROS']['nombre_columna_reservada'] = request.name_reserved_column
 
         config['API-OAUTH2']['username'] = request.username
         config['API-OAUTH2']['password'] = request.password
@@ -300,7 +295,7 @@ async def set_api_cong(request: schemas.ApiConf, api_key=str(Depends(dependencie
             config.write(configfile)
 
     return JSONResponse({'status':'succes','response':'La nueva configuración ha sido cambiada correctamente'})
-"""
+
 # ------------ WebSockets endpoinds -----------------------------------------------
 
 @app.websocket("/ws_tabla")
@@ -348,37 +343,12 @@ async def redirect_uri(request: Request):
         # Handle the case where there is no code in the query string
         return {"error": "No authorization code provided"}
 
-'''
-async def get_current_user(token: str = Depends(dependencies.oauth2_scheme)):
-    """This function is designed to decode a token and return the corresponding user"""
-    user_dict = security.decode_token(token)
-    if not user_dict:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
-            headers={'WWW-Authenticate': 'bearer'},
-        )
-    user = security.get_user_db(security.fake_users_db2, user_dict['sub'])
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found",
-            headers={'WWW-Authenticate': 'Bearer'},
-        )
-    return user
-    
 
-async def get_current_active_user(
-        current_user: Annotated[security.User, Depends(get_current_user)]
-):
-    """get the active user"""
-    if current_user.disabled:
-        raise HTTPException(status_code=400, detail="Inactive user")
-    return current_user
-'''
 @app.post("/token", description="Crear token de sessión de la forma más segura possible", tags=["Seguridad"])
-async def user_create_token(form_data: OAuth2PasswordRequestForm = Depends(), api_key: str = Security(dependencies.get_api_key_)):
-    # Handle Errors
+async def user_create_token(
+    form_data: OAuth2PasswordRequestForm = Depends(), 
+    api_key: str = Security(dependencies.get_api_key_)
+    ):
 
     # Authenticate user
     auth_user, role, id_ = await autenticate_user(form_data.username, form_data.password)
@@ -389,17 +359,12 @@ async def user_create_token(form_data: OAuth2PasswordRequestForm = Depends(), ap
             headers={"WWW-Authenticate": "Bearer"}
         )
 
-    # Create token session
+    # Create token session from the token data recived
     data = {"sub":form_data.username, "role": role, "id":str(id_)}
     expire_data = datetime.timedelta(days=120) # Token expires in 120 days
     acces_token = create_access_token(data, expire_data)
 
     return {"access_token":acces_token, "token_type": "bearer"}
-
-
-@app.get("/verify_session/{token}")
-async def verify_session(token: str):
-    return ""
 
 
 if __name__ == "__main__":

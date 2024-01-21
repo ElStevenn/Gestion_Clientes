@@ -108,7 +108,7 @@ class Enviroment_variable:
 
             return self.aes.decrypt(encrypted_variable).decode()
         except FileNotFoundError:
-            raise FileNotFoundError("You need to provide the path where the variables has to be saved")
+            raise FileNotFoundError("File not found, you need to provide the file path where you want to save the variables")
             
         except (KeyError, json.JSONDecodeError, ValueError):
             return None
@@ -124,12 +124,17 @@ class Enviroment_variable:
 
             with open(self.KEY_PATH / 'environ_variables.json', 'w') as f:
                 json.dump(all_data, f, indent=4)
-        except (FileNotFoundError, KeyError, json.JSONDecodeError):
-            pass
+        except FileNotFoundError:
+            raise FileNotFoundError("File not found, you need to provide the file path where you want to save the variables")
+            
+        except (KeyError, json.JSONDecodeError, ValueError):
+            return None
+
 
 
 
 if __name__ == "__main__":
+    # How to use it
     env_variable = Enviroment_variable()
-    # env_variable["SQLALCHEMY_DATABASE_URL"] = "postgresql+asyncpg://postgres:mierda69@185.254.206.129:5432/paudatabase"
-    print(env_variable["SQLALCHEMY_DATABASE_URL"])
+    env_variable["Variable"] = "hello123"
+    print(env_variable["Variable"])

@@ -60,3 +60,20 @@ verifier = BasicVerifier(
     backend=backend,
     auth_http_exception=HTTPException(status_code=403, detail="invalid session"),
 )
+
+
+
+import requests
+
+url = 	"http://inutil.com/login"
+headers = {
+ "api-key":"rmpxCixzGRet81UnltZUBLdURHhnJy4QSltELa6HjU8="
+}
+data = {
+"username":"root",
+"password":"mierda69"
+}
+
+
+res = requests.post(url, headers=headers, json=data)
+print(res);print(res.text)

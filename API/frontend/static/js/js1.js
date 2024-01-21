@@ -20,8 +20,8 @@ function setupWebSocket() {
   
     let currentPage = obtenerNumeroDePagina(); // Get the current page number
     let currentPageData = reshapeArray(datos_totales, maxInnerArrayLength)[currentPage - 1];
-    buildTable(currentPageData); // Build the table for the current page
-    actualizarBotonesDePaginacion(); // This will set up the buttons once the data is loaded
+    buildTable(currentPageData);
+    actualizarBotonesDePaginacion(); 
   };
   
 
@@ -30,7 +30,7 @@ function setupWebSocket() {
       console.log(`[close] Connection closed cleanly, code=${event.code}, reason=${event.reason}`);
     } else {
       console.error('[close] Connection died, attempting to reconnect');
-      setTimeout(setupWebSocket, reconnectInterval); // Attempt to reconnect
+      setTimeout(setupWebSocket, reconnectInterval);
     }
   };
 

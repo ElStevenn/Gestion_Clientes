@@ -1,10 +1,9 @@
 #!/usr/bin/env python3 
 
-
-
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session, selectinload
 from sqlalchemy.future import select
+from sqlalchemy import and_
 from . import models
 from base64 import b64encode
 import asyncio
@@ -28,28 +27,30 @@ async def get_user(db: AsyncSession, username: str):
     return pre_result.first()
 
 
+async def vadilate_user_credentials(username: str, role:str, id_:str): # End this please!
+    """Vadilate user credentials by its user, role and id"""
+    async with async_engine.connect() as conn:
+        # Check the result
+        result = await conn.execute(select(models.Authorized_users).where(and_(
+                                models.Authorized_users.username == username, 
+                                models.Authorized_users.role_ == role,
+                                models.Authorized_users.id == id_
+                                )))
+
+        await async_engine.dispose()
+        user_data = result.first()
+        return user_data
 
 
 async def main():
+    id_ = "9c67e4b0-2821-417c-8cc4-62692d2a84b1"
+    username = "root"
+    role = "owner"
 
-
-    """
-    new_user = schemas.CreateUser(
-        username="root",
-        email="puercoespin",
-        password="mierda69",
-        role_="owner"
-    )
-    """
-"""    async with AsyncSession(async_engine) as db:
-        result = await check_session(db, 'root', 'mierda69')
-
-        # print(result)
-        
-
-    # print(ecipher_text, salt, nonce, tag)
+    result = await vadilate_user_credentials(username, role, id_)
+    print(result[1])
+    print(result[2])
+    print(result[3])
 
 if __name__ == "__main__":
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(main())
-"""
+   asyncio.run(main())

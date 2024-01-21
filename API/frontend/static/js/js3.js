@@ -1,32 +1,23 @@
 console.log("Hello world!");
 let apikey = 'rmpxCixzGRet81UnltZUBLdURHhnJy4QSltELa6HjU8=';
-let ip = "185.254.206.129"; // Pau, you will need to change this
+let ip = "185.254.206.129";
 
-<<<<<<< HEAD
+
 async function login(username, password) {
-=======
-async function createSession(username, password) {
->>>>>>> d6981f63b4066d5350a4a69c7248452b31c5d066
     try {
+        const body_request = new URLSearchParams();
+        body_request.append("username", username);
+        body_request.append("password", password);
         
-        let body_request = {
-            "username":username,
-            "password": password
-        }
-
-<<<<<<< HEAD
-        const response = await fetch(`http://${ip}/login`, {
-=======
-        const response = await fetch(`http://${ip}/create_session`, {
->>>>>>> d6981f63b4066d5350a4a69c7248452b31c5d066
-            method: 'POST',
+        const response = await fetch("http://inutil.top/token", {
+            method: "POST",
             headers: {
-                "Content-Type": "application/json",
-                // Add apikey here if is required
+                "Content-Type": "application/x-www-form-urlencoded",
+                "api-key": apikey // Ensure apikey is defined and valid
             },
-            body: JSON.stringify(body_request)
+            body: body_request
         });
-
+        
         if (!response.ok) {
             throw new Error(`HTTP error! Status: ${response.status}`);
         }
@@ -37,28 +28,24 @@ async function createSession(username, password) {
         return result;
 
     } catch (error) {
-<<<<<<< HEAD
-        console.error("An error occurred with checkUsername: ", error);
+        console.error("An error occurred with login: ", error);
     }
 }
 
-async function setSession(sessionData){
-    const response = await fetch(`http://${ip}/set-session`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(sessionData),
-    credentials: 'include'
-  });
-  const responseData = await response.json();
-  // Set session into like it was a cookie
-  document.cookie = `session_id = ${responseData.session_id}`
 
-  return responseData
-}
-
-
+function getCookieByName(cookieName) {
+    const cookies = document.cookie.split('; ');
+  
+    for (const cookie of cookies) {
+      const [name, value] = cookie.split('=');
+      if (name === cookieName) {
+        return value;
+      }
+    }
+  
+    // If the cookie with the specified name is not found, return null or an empty string as desired.
+    return null;
+  }
 
 
 
@@ -93,21 +80,28 @@ async function login(username,password) {
 }
 */
 async function whoAmi() {
+    // Verify if the user is already logged
     try{
-
-        let session_id_boddy = {'sessionStorage':document.cookie}
-        console.log(session_id_boddy);
-        
-        const response = await fetch(`http://${ip}/get-session`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-        body: JSON.stringify(session_id_boddy),
-        credentials: 'include'})
-        
-        return response.json();
-
+        const token_beaber = getCookieByName('token_beaber')
+        if (!token_beaber){
+            // Verify if the user doesn't have session token
+            console.log("The user doesn't have any token asociated")
+        }else{
+            // Send a login to autenticate the user, credentials and check if tht user has the correct credentials
+            let request_body = {'token_beaber':token_beaber}
+            console.log(request_body);
+            
+            const response = await fetch(`http://inutil.top/login`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'api-key': apikey
+                },
+            body: JSON.stringify(request_body),
+            credentials: 'include'})
+            
+            return response.json();
+        }
     } catch(error) {
         console.error("An error ocurred with whoAmi: ", error)
     }
@@ -119,21 +113,19 @@ document.addEventListener('DOMContentLoaded', async function() {
     
         let username = document.getElementById('username').value;
         let password = document.getElementById('password').value;
-        const request = await login(username, password);
-    
-        // Check if the login request was unsuccessful
-        if (!request || request.status === "failed") {
+        try{
+            const request = await login(username, password);
+            console.log(request);
+
+        }catch(e){
             // Handle error, notify the client that there's an issue (e.g., wrong password or network error)
             const errorMessage = request ? request.response : "Login failed due to a network error.";
             document.getElementById('status_message').textContent = errorMessage;
             document.getElementById('status_message').style = "color: #ad0014;";
-        } else {
-            // Proceed with session creation
-            document.getElementById('status_message').textContent = "";
-            const session_data = { "username": username };
-            let session_ = await setSession(session_data);
-            console.log(session_);
         }
+        
+    
+      
     });
     
 });
@@ -141,39 +133,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 
 async function main(){
     const whoami_ = await whoAmi();
-    console.log(whoami_);
+    console.log("whoami response (delete this): ",whoami_);
 
 }
 main();
-=======
-        console.error("An error occurred with CreateSession: ", error);
-    }
-}
 
-
-
-document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('button_login_submit').addEventListener('click',async function(event) {
-        event.preventDefault();
-
-        let username = document.getElementById('username').value;
-        let password = document.getElementById('password').value;
-
-        const session = await createSession(username, password);
-;
-        if (session.status == "failed") {
-            // Handle error, in   this case notify the client that his password is worng
-            document.getElementById('status_message').textContent = session.response;
-            document.getElementById('status_message').style = "color: #ad0014;"
-
-        } else{
-            // Create cookie and store id in his navegator
-            console.log("*redirecting to /apiconf and creating a new session cookie.In theory the createSessionhas to be that*")
-            
-
-        }
-
-
-    });
-});
->>>>>>> d6981f63b4066d5350a4a69c7248452b31c5d066
