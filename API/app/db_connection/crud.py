@@ -31,15 +31,18 @@ async def vadilate_user_credentials(username: str, role:str, id_:str): # End thi
     """Vadilate user credentials by its user, role and id"""
     async with async_engine.connect() as conn:
         # Check the result
-        result = await conn.execute(select(models.Authorized_users).where(and_(
-                                models.Authorized_users.username == username, 
-                                models.Authorized_users.role_ == role,
-                                models.Authorized_users.id == id_
-                                )))
+        try:
+            result = await conn.execute(select(models.Authorized_users).where(and_(
+                                    models.Authorized_users.username == username, 
+                                    models.Authorized_users.role_ == role,
+                                    models.Authorized_users.id == id_
+                                    )))
 
-        await async_engine.dispose()
-        user_data = result.first()
-        return user_data
+            await async_engine.dispose()
+            user_data = result.first()
+            return user_data
+        except TypeError:
+            return None
 
 
 async def main():
@@ -48,9 +51,7 @@ async def main():
     role = "owner"
 
     result = await vadilate_user_credentials(username, role, id_)
-    print(result[1])
-    print(result[2])
-    print(result[3])
+    print(result)
 
 if __name__ == "__main__":
    asyncio.run(main())

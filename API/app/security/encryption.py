@@ -113,22 +113,27 @@ encrypter_AES256 = AES_256_encrypter()
 async def check_session(db: AsyncSession, username: str, provided_password: str):
     # Check if username and password are correct
     # Get username
-    user_data = await get_user(db, username)
-
-    username = user_data[1]
-    enc_dict = {
-        'cipher_text': b64encode(user_data[3]).decode('utf-8'),
-        'salt': b64encode(user_data[5]).decode('utf-8'),
-        'nonce': b64encode(user_data[6]).decode('utf-8'),
-        'tag': b64encode(user_data[7]).decode('utf-8')
-    }
-
-    # Decrypt password and check if password is corret
-    decrypted_password = encrypter_AES256.decypt(enc_dict, provided_password)
     try:
+        user_data = await get_user(db, username)
+
+        username = user_data[1]
+        enc_dict = {
+            'cipher_text': b64encode(user_data[3]).decode('utf-8'),
+            'salt': b64encode(user_data[5]).decode('utf-8'),
+            'nonce': b64encode(user_data[6]).decode('utf-8'),
+            'tag': b64encode(user_data[7]).decode('utf-8')
+        }
+
+        # Decrypt password and check if password is corret
+        decrypted_password = encrypter_AES256.decypt(enc_dict, provided_password)
+
         if bytes.decode(decrypted_password) == username:
-            # Session provided correct
+            # Sessssion provided correct
             return (True, user_data[4], user_data[0])
+        
+    except TypeError:
+        # User provided is worng
+        return None, None, None
 
     except ValueError:
         raise ValueError("Password provided is wrong")
@@ -140,7 +145,8 @@ async def autenticate_user(username: str, password: str):
             return await check_session(db, username, password)
     
     except ValueError:
-        return False
+        # Value error ocurred
+        return None, None, None
 
 async def authenticate_token(token: str):
     decoded_token = decode_token(token)

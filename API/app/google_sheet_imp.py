@@ -387,26 +387,29 @@ class Document_CRUD():
         sheet = self.service_.spreadsheets()
         data_format_result = sheet.get(spreadsheetId=self.Spreadsheet_ID, ranges=range_name,
                    fields='sheets(data(rowData(values(effectiveFormat(textFormat(italic))))))').execute()
-        
-        result = sheet.values().get(spreadsheetId=self.Spreadsheet_ID, range=range_name).execute().get('values', [])[0]
+        data_formated = data_format_result.get('sheets', [])[0].get('data', [])[0].get('rowData', [])[0].get('values', [])
+
+        columns_name_array = sheet.values().get(spreadsheetId=self.Spreadsheet_ID, range=range_name).execute().get('values', [])[0]
         
         _result = []
-        print(len(result))
-        print(len(data_format_result.get('sheets', [])[0].get('data', [])[0].get('rowData', [])[0].get('values', [])))
-        """
-        try:
-            for i, value in enumerate(data_format_result.get('sheets', [])[0].get('data', [])[0].get('rowData', [])[0].get('values', [])):
-                _result.append({
-                    'value': result[i],
-                    'is_italic': True if value.get('effectiveFormat', None).get('textFormat', None).get('italic', None) else False
-                    # We can add more states here as needed 
-                })
-        except IndexError:
-            # In case the user fo
-            self.send_message("Asegurate de quitar el italic para que no lo detecte como campo, es probable que acabes de quitar una columna", "error", "Error de campo", range_name="B1:B2")
-            raise IndexError("There is a cell in the column name definition, where is italic, make sure to remove the \"italic\" in the cell")
+        print(len(columns_name_array))
+        if len(columns_name_array) == len(data_formated):
+            try:
+                for i, value in enumerate(data_formated):
+                    _result.append({
+                        'value': result[i],
+                        'is_italic': True if value.get('effectiveFormat', None).get('textFormat', None).get('italic', None) else False
+                        # We can add more states here as needed 
+                    })
+            except IndexError:
+                # In case the user doesn't removed the italic
+                self.send_message("Asegurate de quitar el italic para que no lo detecte como campo, es probable que acabes de quitar una columna", "error", "Error de campo", range_name="B1:B2")
+                raise IndexError("There is a cell in the column name definition, where is italic, make sure to remove the \"italic\" in the cell")
+        else:
             
-        """
+            raise IndexError("A temporal error ocurred (FIix this soon of a bitch)")
+                
+
         return _result
         
 

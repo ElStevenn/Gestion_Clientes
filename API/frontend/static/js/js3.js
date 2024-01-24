@@ -13,17 +13,21 @@ async function login(username, password) {
             method: "POST",
             headers: {
                 "Content-Type": "application/x-www-form-urlencoded",
-                "api-key": apikey // Ensure apikey is defined and valid
+                "api-key": apikey 
             },
             body: body_request
         });
         
         if (!response.ok) {
+            document.getElementById('status_message').textContent = "User doesn't exists";
+            document.getElementById('status_message').style = "color:red;"
             throw new Error(`HTTP error! Status: ${response.status}`);
+           
         }
 
         const result = await response.json();
-        console.log("Success", result);
+        document.getElementById('status_message').textContent = "User verified!";
+        document.getElementById('status_message').style = "color:green;"
 
         return result;
 
@@ -79,10 +83,13 @@ async function login(username,password) {
     }
 }
 */
-async function whoAmi() {
+async function whoAmi(token_beaber = null) {
     // Verify if the user is already logged
     try{
-        const token_beaber = getCookieByName('token_beaber')
+        if (!token_beaber){
+            const token_beaber = getCookieByName('token_beaber');
+        }
+        
         if (!token_beaber){
             // Verify if the user doesn't have session token
             console.log("The user doesn't have any token asociated")
@@ -104,6 +111,7 @@ async function whoAmi() {
         }
     } catch(error) {
         console.error("An error ocurred with whoAmi: ", error)
+        return null;
     }
 }
 
@@ -113,27 +121,39 @@ document.addEventListener('DOMContentLoaded', async function() {
     
         let username = document.getElementById('username').value;
         let password = document.getElementById('password').value;
-        try{
-            const request = await login(username, password);
-            console.log(request);
 
-        }catch(e){
+        try {
+            const response = await login(username, password);
+            const token_beaber = response.access_token;
+            
+            const whoami_response = await whoAmi(token_beaber);
+            if (whoami_response){
+                if(whoami_response.role == 'root'){
+                    window.location.replace('http://inutil.top/apiconf');
+                }else if(whoami_response.role == 'admin'){
+                    window.location.replace('http://inutil.top/docs');
+                }
+            }
+
+        } catch (e) {
             // Handle error, notify the client that there's an issue (e.g., wrong password or network error)
-            const errorMessage = request ? request.response : "Login failed due to a network error.";
+            console.error(e);
+            const errorMessage = e.response ? e.response : "Login failed due to a network error.";
             document.getElementById('status_message').textContent = errorMessage;
             document.getElementById('status_message').style = "color: #ad0014;";
         }
-        
-    
-      
     });
-    
 });
 
 
 async function main(){
-    const whoami_ = await whoAmi();
-    console.log("whoami response (delete this): ",whoami_);
+    const whoami_response = await whoAmi();
+    if(whoami_response){
+        if (whoami_response['status'] == 'success'){
+            document.getElementById('status_message').textContent = "User already verified!";
+            document.getElementById('status_message').style = "color:green;";
+        } 
+    }   
 
 }
 main();

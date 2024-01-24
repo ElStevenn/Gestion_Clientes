@@ -3,10 +3,11 @@
 from fastapi import FastAPI, HTTPException, Depends, Request, WebSocket, status, Response, BackgroundTasks, Header, Security
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse, FileResponse
+from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse, FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
+from fastapi.openapi.docs import get_swagger_ui_html
 # from fastapi_sessions.session_verifier import SessionVerifier
 from starlette.websockets import WebSocketDisconnect
 from app import schemas, dependencies, email_sender, email_estructure, datasets_manager, documentation_others, security, google_sheet_imp
@@ -27,8 +28,14 @@ app = FastAPI(
     title="API Gestión de Prospectos i Comunicaciónes Empresariales",
     summary = "",
     description="\nEstá API diseñada para optimizar la interacción con clientes potenciales y la comunicación empresarial. Funciona recibiendo datos desde una fuente externa, gestionando estos inputs para identificar clientes con potencial. A continuación, automatiza el envío de correos electrónicos a estos clientes, facilitando un seguimiento efectivo. Paralelamente, la API permite a la empresa responder rápidamente sobre el interés en un cliente, verificar la precisión de los datos o actualizar información relevante. Esta interfaz API es una herramienta clave para empresas que buscan mejorar su gestión de relaciones con clientes y optimizar las comunicaciones comerciales.",
-    version="0.1",
-    docs_url="/docs_00"
+    version="0.2.1",
+    contact={
+        "name": "Pau Mateu",
+        "url": "https://paumateu.com/",
+        "email": "paumat17@gmail.com",
+    },
+    docs_url=None,
+    redoc_url=None
 )
 
 # Configuración de rutas y directorios y servicios
@@ -76,6 +83,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Genera elswagger del /docs
+swagger_ui_html_content = get_swagger_ui_html(
+    openapi_url="/openapi.json",
+    title="API Gestión de Prospectos i Comunicaciónes Empresariales",
+    swagger_js_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.9.0/swagger-ui-bundle.js",
+    swagger_css_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.9.0/swagger-ui.css",
+    swagger_favicon_url="https://fastapi.tiangolo.com/img/favicon.png",
+    oauth2_redirect_url=None,
+    init_oauth=None,
+    
+    
+).body.decode()
+
 
 # ----------------------------- Gestión de excepciones y Validaciones -------------------------------------
 
@@ -87,17 +107,36 @@ async def vadilation_exception_handler(request: Request, exc: RequestValidationE
         content={"detail": exc.errors(), "body": exc.body}
     )
 
-
 # ----------------------------- Distintas solicitudes de la API -----------------------------
 
-@app.get("/", description="Función root. Esta función comprueba que la API esté en funcionamiento", tags=["Main"])
-def root_conf():
-    return RedirectResponse("http://inutil.top/redoc")
+@app.get("/", description="Pantalla de bienvenida para el cliente", tags=["Main"])
+def root_conf(request: Request):
+    return templates.TemplateResponse("api_welcome.html", context={'request': request})
 
 # Remove this function in the future ->
 @app.get("/docs", tags=["Main"])
-def redic_redocs():
-    return RedirectResponse("http://inutil.top/redoc")
+async def redic_redocs(request: Request):
+    cookies = request.cookies
+    try:
+        # Autenticate user 
+        username, role, id_ = await authenticate_token(cookies['token_beaber'] if cookies['token_beaber'] else None)
+    except KeyError:
+        return RedirectResponse('http://inutil.top/api_conf_login')
+    
+    # Vadilate credentials
+    result = await crud.vadilate_user_credentials(username, role, id_)
+
+    # Check result status
+
+    if result[1] in ["root", "admin"] :
+        return HTMLResponse(content=swagger_ui_html_content, )
+        
+    elif result[1] == "user":
+        return PlainTextResponse("Your user doesn't have the enough privilleges to be here")
+    else:
+        return RedirectResponse('http://inutil.top/api_conf_login')
+
+    
 
 @app.post("/enviar_cliente", description=documentation_others.enviar_cliente_doc, tags=["Manejo de Clientes"])
 async def enviar_client( 
@@ -175,29 +214,51 @@ async def api_conf(request: Request):
     # Get cookie to see if thr client has the correct token
     cookies = request.cookies
     if not cookies:
-        # In case the user doesn't have any cookie (that means the user has to login)
+        return RedirectResponse('http://inutil.top/api_conf_login')
+    
+    # Autenticate user 
+    username, role, id_ = await authenticate_token(cookies['token_beaber'])
+
+    # Vadilate credentials
+    result = await crud.vadilate_user_credentials(username, role, id_)
+
+    # Check result status
+    if result:
+        if result[1] == "root":
+            # User authenticated
+            return templates.TemplateResponse(
+                'api_conf.html', {
+                    'request': request, 'apikey':api_key, 'email_sender': config['EMAIL']['email_sender'], 'host':host, 'port': port,'app_password':config['EMAIL']['app_password'],
+                    'email_reciver':config['EMAIL']['email_reciver'], 'username': config['API-OAUTH2']['username'],
+                    'password': config['API-OAUTH2']['password'], 'spreadsheetID': config['GOOGLE-SHEET']['spreadsheet_id']
+                    }
+                )
+        elif result[1] == "admin":
+            return PlainTextResponse("Admin doesn't required to be here")
+        elif result[1] == "user":
+            return PlainTextResponse("Admin doesn't required to be here")
+        else:
+            return RedirectResponse('http://inutil.top/api_conf_login')
+    else:
         return RedirectResponse('http://inutil.top/api_conf_login')
 
-
-
-    return templates.TemplateResponse(
-        'api_conf.html', {
-            'request': request, 'apikey':api_key, 'email_sender': config['EMAIL']['email_sender'], 'host':host, 'port': port,'app_password':config['EMAIL']['app_password'],
-            'email_reciver':config['EMAIL']['email_reciver'], 'username': config['API-OAUTH2']['username'],
-            'password': config['API-OAUTH2']['password'], 'spreadsheetID': config['GOOGLE-SHEET']['spreadsheet_id']
-            }
-        )
+   
 
 @app.post("/login", tags=["Sessions"])
-async def login(request_body:schemas.UserTokenLogin, api_key: str = Security(dependencies.get_api_key_)):
-    # Autenticate user
+async def login(request: Request, request_body:schemas.UserTokenLogin, api_key: str = Security(dependencies.get_api_key_)):
+    cookies = request.cookies
+
+    # Autenticate u/tser
     username, role, id_ = await authenticate_token(request_body.token_beaber)
 
     # Vadilate credentials
     result = await crud.vadilate_user_credentials(username, role, id_)
 
     if result:
-        return {"status":"sucsess","message": f"Session has been created succesfuluy", "user_data":[username, role, id_]}
+        if result[1] == "root":
+            # Change this in the furure, i think is worng
+            return {"status":"success","message":"user authorized as root", "role": result[1]}
+        
 
     else:
         raise HTTPException(
@@ -207,7 +268,7 @@ async def login(request_body:schemas.UserTokenLogin, api_key: str = Security(dep
         )
     
 
-@app.delete("/expire-session", description="Expire the current session in the redis storage and frontend", tags=["Sessions"])
+@app.delete("/expire-session", description="Metodo pendiente de hacer para expirar la sessión", tags=["Sessions"], deprecated=True)
 async def expire_session(sessionId: str = Depends(getSessionId), sessionStorage: SessionStorage = Depends(getSessionStorage)):
     deleteSession(sessionId, sessionStorage)
     return None
@@ -218,7 +279,7 @@ async def api_conf_login(request: Request, redirect: Optional[str] = None):
     return templates.TemplateResponse('client_verify.html', {'request': request, 'redirect':redirect})
 
 
-@app.patch("/update_dataset__", description=r"Método interno para leer el excel y actualizar el dataset del servidor\n*header* -> {'api-key':string}", tags=["Gestor Dataset"])
+@app.patch("/update_dataset_", description=r"Método interno para leer el excel y actualizar el dataset del servidor\n*header* -> {'api-key':string}", tags=["Gestor Dataset"], include_in_schema=False)
 async def update_dataset_from_excel(background_tasks: BackgroundTasks, api_key: str = Security(dependencies.get_api_key_)):
 
     range_name = dataset_manager.get_excel_range
@@ -228,7 +289,7 @@ async def update_dataset_from_excel(background_tasks: BackgroundTasks, api_key: 
 
     return {"status":"success", "message":"Dataset updated", "values":range_name}
 
-@app.patch("/update_columns__", description=r"Método interno que se encarga de leer los nombres de las columnas del exce, el estado y actualizar (si es necesario), el archivo de configuración en caso de haber cambios", tags=["Gestor Dataset"])
+@app.patch("/update_columns_", description=r"Método interno que se encarga de leer los nombres de las columnas del exce, el estado y actualizar (si es necesario), el archivo de configuración en caso de haber cambios", tags=["Gestor Dataset"], include_in_schema=False)
 async def update_num_status_col(api_key: str = Security(dependencies.get_api_key_)):
     column_configuration = google_spreadsheet.get_all_columns_name_and_status()
 
@@ -317,6 +378,7 @@ async def webdocket_endpoint(websocket: WebSocket):
 
 # ------------------- OAuth Autentication ----------------------------------------------------------------
 
+
 @app.get("/code", description="Redirect URI for API authentication", tags=["Seguridad"])
 async def redirect_uri(request: Request):
  # Extract the authorization code from the request
@@ -346,6 +408,7 @@ async def redirect_uri(request: Request):
 
 @app.post("/token", description="Crear token de sessión de la forma más segura possible", tags=["Seguridad"])
 async def user_create_token(
+    response: Response,
     form_data: OAuth2PasswordRequestForm = Depends(), 
     api_key: str = Security(dependencies.get_api_key_)
     ):
@@ -364,6 +427,8 @@ async def user_create_token(
     expire_data = datetime.timedelta(days=120) # Token expires in 120 days
     acces_token = create_access_token(data, expire_data)
 
+    # Set token as cookie
+    response.set_cookie(key="token_beaber", value=acces_token)
     return {"access_token":acces_token, "token_type": "bearer"}
 
 
