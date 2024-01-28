@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from fastapi import FastAPI, HTTPException, Depends, Request, WebSocket, status, Response, BackgroundTasks, Header, Security
+from fastapi import FastAPI, HTTPException, Depends, Request, WebSocket, status, Response, BackgroundTasks, Header, Security, Cookie
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse, FileResponse, PlainTextResponse
@@ -89,7 +89,7 @@ swagger_ui_html_content = get_swagger_ui_html(
     title="API Gestión de Prospectos i Comunicaciónes Empresariales",
     swagger_js_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.9.0/swagger-ui-bundle.js",
     swagger_css_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.9.0/swagger-ui.css",
-    swagger_favicon_url="https://fastapi.tiangolo.com/img/favicon.png",
+    swagger_favicon_url="http://inutil.top/static/images/icon.png",
     oauth2_redirect_url=None,
     init_oauth=None,
     
@@ -242,13 +242,31 @@ async def api_conf(request: Request):
     else:
         return RedirectResponse('http://inutil.top/api_conf_login')
 
-   
 
-@app.post("/login", tags=["Sessions"])
-async def login(request: Request, request_body:schemas.UserTokenLogin, api_key: str = Security(dependencies.get_api_key_)):
-    cookies = request.cookies
+@app.get("/whoami", description="Authenticate token beaber by its cookie", tags=["Sessions"])
+async def whoami(token_beaber: str = Cookie('token_beaber')):
 
-    # Autenticate u/tser
+    # Autenticate user
+    username, role, id_ = await autenticate_user(token_beaber)
+    try:
+        # Vadiate credentials
+        result = await crud.vadilate_user_credentials(username, role, id_)
+        if result[1] == "root" or result[1] == "admin" or result[1] == "user":
+            return {"status":"success", "role": result[1], "message":"User authorized succsessfully"}
+        
+
+    except TypeError:
+        raise HTTPException(
+            status_code = status.HTTP_401_UNAUTHORIZED,
+            detail = "User not authorized",
+            headers={'WWW-Authenticate': 'Bearer'}
+        )
+
+
+@app.post("/login", description="", tags=["Sessions"])
+async def login(request_body:schemas.UserTokenLogin, api_key: str = Security(dependencies.get_api_key_)):
+
+    # Autenticate user
     username, role, id_ = await authenticate_token(request_body.token_beaber)
 
     # Vadilate credentials
@@ -258,6 +276,7 @@ async def login(request: Request, request_body:schemas.UserTokenLogin, api_key: 
         if result[1] == "root":
             # Change this in the furure, i think is worng
             return {"status":"success","message":"user authorized as root", "role": result[1]}
+        
         
 
     else:

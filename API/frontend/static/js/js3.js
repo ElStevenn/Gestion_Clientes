@@ -37,78 +37,45 @@ async function login(username, password) {
 }
 
 
-function getCookieByName(cookieName) {
-    const cookies = document.cookie.split('; ');
-  
-    for (const cookie of cookies) {
-      const [name, value] = cookie.split('=');
-      if (name === cookieName) {
-        return value;
-      }
-    }
-  
-    // If the cookie with the specified name is not found, return null or an empty string as desired.
-    return null;
-  }
-
-
-
-
-
-/*
-async function login(username,password) {
-    try{
-        const body_request = {"username":username, "password":password} 
-        const response = await fetch(`http://${ip}/login?response=response`, {
-            method: 'POST',
-            headers: {
-                "Content-Type": "application/json",
-                // Add apikey here if is required
-            },
-            body: JSON.stringify(body_request),
-            credentials: 'include' // This is necesary to include cookies
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-
-        const result = await response.json();
-        return result;
-
-
-    } catch(error) {
-        console.log("An error ocrred with createSession:", error);
+async function whoAmi() {
+    try {
+        // Verify if the user is already logged
+        const response = await fetch('http://inutil.top/whoami');
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error("An error occurred:", error);
+        // Handle the error as needed, for example, return null or a custom error message
         return null;
     }
 }
-*/
-async function whoAmi(token_beaber = null) {
-    // Verify if the user is already logged
+
+
+
+
+async function vadilate_token(token_beaber) {
+    // Verify the token created
     try{
-        if (!token_beaber){
-            const token_beaber = getCookieByName('token_beaber');
-        }
+        let request_body;
+
+        // Send a login to autenticate the user, credentials and check if tht user has the correct credentials
         
-        if (!token_beaber){
-            // Verify if the user doesn't have session token
-            console.log("The user doesn't have any token asociated")
-        }else{
-            // Send a login to autenticate the user, credentials and check if tht user has the correct credentials
-            let request_body = {'token_beaber':token_beaber}
-            console.log(request_body);
-            
-            const response = await fetch(`http://inutil.top/login`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'api-key': apikey
-                },
+        request_body = {'token_beaber': token_beaber}
+      
+       
+        console.log(request_body);
+        
+        const response = await fetch(`http://inutil.top/login`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'api-key': apikey
+            },
             body: JSON.stringify(request_body),
             credentials: 'include'})
-            
-            return response.json();
-        }
+        
+        return response.json();
+        
     } catch(error) {
         console.error("An error ocurred with whoAmi: ", error)
         return null;
@@ -124,14 +91,18 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         try {
             const response = await login(username, password);
+            console.log(response);
             const token_beaber = response.access_token;
             
-            const whoami_response = await whoAmi(token_beaber);
+            const whoami_response = await vadilate_token(token_beaber);
+            
             if (whoami_response){
                 if(whoami_response.role == 'root'){
                     window.location.replace('http://inutil.top/apiconf');
                 }else if(whoami_response.role == 'admin'){
                     window.location.replace('http://inutil.top/docs');
+                }else if (whoami_response.role == 'user'){
+                    window.location.replace('http://inutil.top/');
                 }
             }
 
@@ -139,7 +110,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             // Handle error, notify the client that there's an issue (e.g., wrong password or network error)
             console.error(e);
             const errorMessage = e.response ? e.response : "Login failed due to a network error.";
-            document.getElementById('status_message').textContent = errorMessage;
+            document.getElementById('status_message').textContent = String(e); // Change this whenever I can
             document.getElementById('status_message').style = "color: #ad0014;";
         }
     });

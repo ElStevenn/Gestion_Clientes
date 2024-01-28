@@ -407,7 +407,7 @@ class Document_CRUD():
                 raise IndexError("There is a cell in the column name definition, where is italic, make sure to remove the \"italic\" in the cell")
         else:
             
-            raise IndexError("A temporal error ocurred (FIix this soon of a bitch)")
+            raise IndexError("A temporal error ocurred (Fix this soon of a bitch)")
                 
 
         return _result
