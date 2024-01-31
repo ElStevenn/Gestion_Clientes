@@ -8,6 +8,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from pathlib import Path
 import os.path
 import re
+import logging
 import numpy as np
 import pandas as pd
 from typing import Optional, Tuple
@@ -25,7 +26,7 @@ class Document_CRUD():
     """
     SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
     def __init__(self, Spreadsheet_ID=None):
-        self.Spreadsheet_ID = Spreadsheet_ID
+        self.Spreadsheet_ID = Spreadsheet_ID or ""
         self.service_ = self.auth()
         self.column_rangeName = "C8:K8"
 
@@ -375,42 +376,55 @@ class Document_CRUD():
         ).execute()
         print(f"Cleared cell formatting: {response}")
 
-
     @feature_decorator
     def get_all_columns_name_and_status(self):
         """
-        Get all the column name and if is in italic mode or no
-
+        Get all the column names and their italic status from an spreadsheet
         """
 
-        range_name = "C8:Z8" # This is the range where the function read, change if is needed
+        range_name = "C8:Z8"  # Adjust the range as needed
         sheet = self.service_.spreadsheets()
-        data_format_result = sheet.get(spreadsheetId=self.Spreadsheet_ID, ranges=range_name,
-                   fields='sheets(data(rowData(values(effectiveFormat(textFormat(italic))))))').execute()
-        data_formated = data_format_result.get('sheets', [])[0].get('data', [])[0].get('rowData', [])[0].get('values', [])
 
-        columns_name_array = sheet.values().get(spreadsheetId=self.Spreadsheet_ID, range=range_name).execute().get('values', [])[0]
-        
-        _result = []
-        print(len(columns_name_array))
-        if len(columns_name_array) == len(data_formated):
-            try:
-                for i, value in enumerate(data_formated):
-                    _result.append({
-                        'value': result[i],
-                        'is_italic': True if value.get('effectiveFormat', None).get('textFormat', None).get('italic', None) else False
-                        # We can add more states here as needed 
-                    })
-            except IndexError:
-                # In case the user doesn't removed the italic
-                self.send_message("Asegurate de quitar el italic para que no lo detecte como campo, es probable que acabes de quitar una columna", "error", "Error de campo", range_name="B1:B2")
-                raise IndexError("There is a cell in the column name definition, where is italic, make sure to remove the \"italic\" in the cell")
-        else:
-            
-            raise IndexError("A temporal error ocurred (Fix this soon of a bitch)")
-                
+        try:
+            # Get the column names
+            columns_response = sheet.values().get(spreadsheetId=self.Spreadsheet_ID, range=range_name).execute()
+            column_names = columns_response.get('values', [[]])[0]
+        except Exception as e:
+            error_message = f"Error fetching column names from the sheet: {str(e)}"
+            self.send_message(error_message, "error", "Error in Data Retrieval", range_name="B1:B2")
+            raise Exception(error_message)
 
-        return _result
+        try:
+            # Get the formatted data for italic status
+            format_response = sheet.get(spreadsheetId=self.Spreadsheet_ID, ranges=range_name,
+                fields='sheets(data(rowData(values(effectiveFormat(textFormat(italic))))))').execute()
+            formatted_data = format_response.get('sheets', [])[0].get('data', [])[0].get('rowData', [])[0].get('values', [])
+        except Exception as e:
+            error_message = f"Error fetching formatted data from the sheet: {str(e)}"
+            self.send_message(error_message, "error", "Error in Data Retrieval", range_name="B1:B2")
+            raise Exception(error_message)
+
+        # Debugging information
+        logging.debug("Length of column_names:", len(column_names))
+        logging.debug("Length of formatted_data:", len(formatted_data))
+
+        results = []
+
+        for i in range(max(len(column_names), len(formatted_data))):
+            column_name = column_names[i] if i < len(column_names) else None
+            is_italic = formatted_data[i].get('effectiveFormat', {}).get('textFormat', {}).get('italic', False) if i < len(formatted_data) else False
+
+            results.append({
+                'value': column_name,
+                'is_italic': is_italic
+            })
+
+        return results
+
+
+
+
+
         
 
 

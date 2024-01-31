@@ -18,3 +18,4 @@ redis
 fastapi-redis-session
 Faker
 aiofiles
+openai

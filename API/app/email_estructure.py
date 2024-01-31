@@ -3,13 +3,6 @@
 from configparser import ConfigParser
 from pathlib import Path
 
-class GenerateLink:
-    def __init__(self):
-        pass
-
-    def main(self):
-        pass
-
 
 class ClienteEmailFormatter:
     """

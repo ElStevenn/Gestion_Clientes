@@ -14,6 +14,7 @@ from app import schemas, dependencies, email_sender, email_estructure, datasets_
 from app.security.backups import make_backup_s3
 from app.security.encryption import autenticate_user, create_access_token, authenticate_token
 from app.db_connection import crud
+from app.schema_send_client import DynamicModel, client_schema_definition
 from fastapi_redis_session import deleteSession, getSession, getSessionId, getSessionStorage, setSession, SessionStorage
 from typing import Optional, Annotated, Any
 from configparser import ConfigParser
@@ -109,7 +110,7 @@ async def vadilation_exception_handler(request: Request, exc: RequestValidationE
 
 # ----------------------------- Distintas solicitudes de la API -----------------------------
 
-@app.get("/", description="Pantalla de bienvenida para el cliente", tags=["Main"])
+@app.get("/", description="Pantalla de bienvenida para el cliente", include_in_schema=False)
 def root_conf(request: Request):
     return templates.TemplateResponse("api_welcome.html", context={'request': request})
 
@@ -142,7 +143,7 @@ async def redic_redocs(request: Request):
 async def enviar_client( 
     background_tasks: BackgroundTasks,
     api_key: str = Security(dependencies.get_api_key_),
-    *request: schemas.ClientsRequest
+    *request: DynamicModel
 ):
     mail_structure_dict = []
     client_mana = []
@@ -207,7 +208,11 @@ async def download_table(token_beaber: str, filename: Optional[str] = "Tabla_cli
 
     return FileResponse(dataset_manager.get_xlsx_document(filename))
 
+@app.put("/update_schema_client", description="Update the sechema definition from a column given", tags=["Manejo de Clientes"])
+async def update_schema_client_(background_tasks: BackgroundTasks, api_key: str = Security(dependencies.get_api_key_)):
+    background_tasks.add_task(client_schema_definition)
 
+    return {"result":"success", "response":"The schema definiton has been updated"}
 
 @app.get("/apiconf", response_class=HTMLResponse, description="Pequeño panel html para configurar la API (hacer si me da tiempo)", tags=["Main"])
 async def api_conf(request: Request):

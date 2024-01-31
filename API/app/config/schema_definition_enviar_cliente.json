@@ -1,0 +1,14 @@
+{
+    "clientes": [
+      {
+        "nombre": "string",
+        "apellidos": "string",
+        "numero_telefono": "string",
+        "codigo_postal": "string",
+        "url_registro": "string",
+        "campo_adicional": "",
+        "informacion_adicional": {},
+        "informacion_adicional_str": "string"
+      }
+    ]
+}

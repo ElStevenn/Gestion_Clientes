@@ -141,5 +141,25 @@
             <script src="{{ url_for('static', path='/js/js2.js') }}"></script>
         </form>
     </div>
+    <div class="container">
+        <h2>Definición del Esquema de la API (POST /enviar_cliente)</h2>
+        <form id="apiSchemaForm">
+            <div class="section">
+                <h3>Esquema para: POST /enviar_cliente</h3>
+                <div class="config-item">
+                    <label for="requestParameters">Parámetros de la Solicitud (JSON):</label>
+                    <textarea id="requestParameters" name="requestParameters" rows="4"></textarea>
+                </div>
+                <div class="config-item">
+                    <label for="responseSchema">Esquema de Respuesta (JSON):</label>
+                    <textarea id="responseSchema" name="responseSchema" rows="4"></textarea>
+                </div>
+            </div>
+
+            <div>
+                <button type="submit">Guardar Esquema de la API</button>
+            </div>
+        </form>
+    </div>
 </body>
 </html> 

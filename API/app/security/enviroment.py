@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 
 from typing import Any
 from pathlib import Path
@@ -131,10 +132,10 @@ class Enviroment_variable:
             return None
 
 
-
+env_variable = Enviroment_variable()
 
 if __name__ == "__main__":
     # How to use it
     env_variable = Enviroment_variable()
-    env_variable["Variable"] = "hello123"
-    print(env_variable["Variable"])
+    
+    print(env_variable["OpenAI_Apikey"])
