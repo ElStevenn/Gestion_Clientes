@@ -134,6 +134,7 @@ class DTManage_manager():
             raise ValueError(f"Worng array lenght, the right lenght should be {len(result)}")
 
         """        
+        s
         if missing_columns:
             # Optionally handle missing columns: raise an error, add them, ignore, etc.
             raise ValueError(f"Missing columns in the dataset: {missing_columns}")
