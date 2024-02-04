@@ -1,5 +1,6 @@
 # !/usr/bin/env python3
 
+# Change the description so that can apear ok and even in the future and can implement it through AI
 enviar_cliente_doc = """
 
 Esta función recibe y procesa la información de los clientes potenciales. Esta función es para ser utilizada por sistemas externos que necesitan enviar datos de clientes para su gestión y seguimiento en la plataforma.

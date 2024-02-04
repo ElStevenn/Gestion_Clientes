@@ -5,7 +5,7 @@ import openai
 from .security import enviroment
 from .google_sheet_imp import Document_CRUD
 from typing import List
-from pydantic import BaseModel, create_model
+from pydantic import BaseModel, create_model, Field
 from typing import Any, Dict, List
 import json, os
 import numpy as np
@@ -101,28 +101,38 @@ def client_schema_definition():
     
     return final_schema
 
+def get_schema_columns():
+    with open(os.path.join('app','config','schema_client.json'), 'r') as f:
+        column_data = json.load(f)
+
+    return [col_name.get('column_name', None) for col_name in column_data]
+
 ############## DEFINE THE CLIENT SCHEMA IN PYDANTIC ##########################
 
 def map_dtype_python_type(dtype: str):
     if dtype == 'string':
-        return str
-    elif dtype == '0':
-        return int
-    elif dtype == 'False':
-        return bool
+        return (str, ...)
+    elif dtype == 'integer':
+        return (int, ...)
+    elif dtype == 'boolean':
+        return (bool, ...)
     else:
-        return Any 
+        return (str, ...)  # Default to string if the dtype is not recognized
 
-def create_dinamic_model():
-    with open(os.path.join('app','config','schema_client.json'),'r') as f:
+def create_dynamic_model():
+    with open(os.path.join('app', 'config', 'schema_client.json'), 'r') as f:
         column_data = json.load(f)
 
-    fields = {str(col["column_name"]): (map_dtype_python_type(col["dtype"]), ...) for col in column_data}
+    fields = {}
+    for col in column_data:
+        python_type, default = map_dtype_python_type(col["dtype"])
+        is_unique = col["is_unique"] == "True"
+        fields[col["column_name"]] = (python_type, Field(default, unique=is_unique))
+
     dynamic_model = create_model('DynamicModel', **fields)
     return dynamic_model
 
-DynamicModel = create_dinamic_model()
+DynamicModel = create_dynamic_model()
 
 if __name__ == "__main__":
-    result = client_schema_definition()
-    
+    print(DynamicModel.schema_json(indent=2))

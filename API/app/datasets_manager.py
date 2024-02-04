@@ -29,8 +29,8 @@ class DTManage_manager():
         datasets_dir = Path("./datasets")
         datasets_dir.mkdir(parents=True, exist_ok=True)
 
-        # Full path to the CSV file
-        path = datasets_dir / "main_dataset_manager2.csv"
+        # This is the main dataset where the users work
+        self.dataset_path = datasets_dir / "main_dataset_manager2.csv"
 
         self.google_sheed_crud = Document_CRUD(conf['GOOGLE-SHEET']['spreadsheet_id'])
 
@@ -42,12 +42,12 @@ class DTManage_manager():
             self.columns_names = ['index']  # Default column names
 
         try:
-            self.manage_dataset = pd.read_csv(path)
+            self.manage_dataset = pd.read_csv(self.dataset_path)
             if self.manage_dataset.empty:
                 raise pd.errors.EmptyDataError
         except (FileNotFoundError, pd.errors.EmptyDataError):
             self.manage_dataset = pd.DataFrame(columns=self.columns_names)
-            self.manage_dataset.to_csv(path, index=False)
+            self.manage_dataset.to_csv(self.google_sheed_crud, index=False)
 
         self.manage_dataset_numy = self.manage_dataset.to_numpy()
 
@@ -96,30 +96,55 @@ class DTManage_manager():
     def show_dataset(self):
         return self.manage_dataset
 
-    async def add_new_columns(self, columns: dict):
+    async def add_new_columns(self, **columns):
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(None, self._add_columns_sync, columns)
 
-    def _add_columns_sync(self, columns: dict):
+    def _add_columns_sync(self, columns):
+        # Ensure manage_dataset is initialized
+        if self.manage_dataset.empty:
+            # Initialize manage_dataset with the index set to the range of the first column's length
+            first_column_name, first_column_values = next(iter(columns.items()))
+            self.manage_dataset = pd.DataFrame(index=range(len(first_column_values)))
+
         for column_name, column_values in columns.items():
             if len(column_values) != len(self.manage_dataset):
-                raise ValueError(f"Longitud de '{column_name}' no coincide con la del DataFrame.")
+                raise ValueError(f"Length of '{column_name}' does not match the DataFrame length.")
 
+            # Add or update the column in the DataFrame
             self.manage_dataset[column_name] = column_values
 
+        # Save the updated DataFrame to CSV
         path = Path("datasets/main_dataset_manager.csv").resolve()
         self.manage_dataset.to_csv(path, index=False)
 
-    async def add_new_row(self, row_data: list):
+    async def add_new_row(self, row_data: np.ndarray):
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(None, self._add_new_row_sync, row_data)
 
-    def _add_new_row_sync(self, row_data: list):
-        new_row = pd.Series(row_data, index=self.manage_dataset.columns)
-        self.manage_dataset = self.manage_dataset._append(new_row, ignore_index=True)
+    def _add_new_row_sync(self, row_data: np.ndarray):
+        # Ensure row_data is a list with thir prespective lenght
+        if not isinstance(row_data, np.ndarray):
+            raise ValueError("The given data is not event an array list")
+        
+        # Handle lenght error
+        query  = np.array(self.columns_names) != None
+        result = np.array(self.columns_names)[query]
+        if len(result) != len(row_data):
+            raise ValueError(f"Worng array lenght, the right lenght should be {len(result)}")
 
-        path = Path("datasets/main_dataset_manager.csv").resolve()
-        self.manage_dataset.to_csv(path, index=False)
+        """        
+        if missing_columns:
+            # Optionally handle missing columns: raise an error, add them, ignore, etc.
+            raise ValueError(f"Missing columns in the dataset: {missing_columns}")
+
+        # Append the new row to the DataFrame
+        new_row = pd.DataFrame([row_data])  # Convert dict to DataFrame for appending
+        self.manage_dataset = pd.concat([self.manage_dataset, new_row], ignore_index=True)
+
+        # Save the updated DataFrame back to CSV
+        self.manage_dataset.to_csv(self.dataset_path, index=False)
+        """
 
     async def delete_row(self, row_index):
         loop = asyncio.get_event_loop()
@@ -151,7 +176,7 @@ class DTManage_manager():
 
     @staticmethod
     def dic_writter(dic: dict):
-        """esta función es simplemente para definirel campo de información adicional y ponerlo de forma legible"""
+        """esta función es simplemente para definirel campo de información adicional y ponerlo de forma legible \ ya no está en uso por el autho schema"""
         if not dic:
             return ""
         try:
@@ -229,11 +254,14 @@ class DTManage_manager():
 
 
 async def main():
+    DT_manager = DTManage_manager()
     np_values = np.array([
-        ['1', 'fs', 'dfdsfds', 'fdf', 'fsd', 'sf', 'fdsfds', 'f', 'sfs', 'wre', '']
+        ['sd', 'dss', 'dss', 'sd', 'sd', 'sd', 'sd', 'sd', 'sd']
     ])
-    dat_manager = DTManage_manager()
-    await dat_manager.update_dataset_status(np_values)
+    # Try to add a new row into the dataset
+    await DT_manager.add_new_row(np_values)
+
+
 
 if __name__ == "__main__":
     asyncio.run(main())

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from fastapi import FastAPI, HTTPException, Depends, Request, WebSocket, status, Response, BackgroundTasks, Header, Security, Cookie
+from fastapi import FastAPI, HTTPException, Depends, Request, WebSocket, status, Response, BackgroundTasks, Header, Security, Cookie, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse, FileResponse, PlainTextResponse
@@ -14,9 +14,9 @@ from app import schemas, dependencies, email_sender, email_estructure, datasets_
 from app.security.backups import make_backup_s3
 from app.security.encryption import autenticate_user, create_access_token, authenticate_token
 from app.db_connection import crud
-from app.schema_send_client import DynamicModel, client_schema_definition
+from app.schema_send_client import DynamicModel, client_schema_definition, get_schema_columns
 from fastapi_redis_session import deleteSession, getSession, getSessionId, getSessionStorage, setSession, SessionStorage
-from typing import Optional, Annotated, Any
+from typing import Optional, Any, List
 from configparser import ConfigParser
 import os, datetime, aiofiles, json, string
 import uvicorn
@@ -128,7 +128,6 @@ async def redic_redocs(request: Request):
     result = await crud.vadilate_user_credentials(username, role, id_)
 
     # Check result status
-
     if result[1] in ["root", "admin"] :
         return HTMLResponse(content=swagger_ui_html_content, )
         
@@ -138,51 +137,44 @@ async def redic_redocs(request: Request):
         return RedirectResponse('http://inutil.top/api_conf_login')
 
     
-
 @app.post("/enviar_cliente", description=documentation_others.enviar_cliente_doc, tags=["Manejo de Clientes"])
 async def enviar_client( 
+    client_body: DynamicModel,
     background_tasks: BackgroundTasks,
     api_key: str = Security(dependencies.get_api_key_),
-    *request: DynamicModel
+   
 ):
-    mail_structure_dict = []
-    client_mana = []
 
-    # Esta parte se encarga de guardar el cliente en un dataset
-    for client in request.clientes:
-        row_body = {
-            'nombre': str(client.nombre),
-            'apellidos': str(client.apellidos),
-            'numero_telefono': str(client.numero_telefono),
-            'codigo_postal': str(client.codigo_postal),
-            'url_registro': str(client.url_registro),
-            'otra_info': str(datasets_manager.DTManage_manager.dic_writter(dict(client.informacion_adicional))) ,
-            'estado':'pendiente',
-            'respuesta': "pendiente a responder",
-            'campo_adicional': str(client.campo_adicional)
-        }
-       
+    data_dict = client_body.dict()
+    values_list = list(data_dict.values()) # Get all the values in a list
+
+    # Save the model in the dataset 
+    # await dataset_manager.add_new_row(*values_list)
+
+    return {"response": values_list, "type": str(type(data_dict))}
+    """
         client_mana.append(row_body)
         mail_structure_dict.append(row_body)
-    
-    # Añadir datos en el google sheet
-    values = [list(val.values()) for val in client_mana];range_name = "C19:K10";valueInputOption = "USER_ENTERED"
-    background_tasks.add_task(google_spreadsheet.append, range_name, valueInputOption, values)
-    
-    # Hacer una copia del excel y comprovar datos duplicados
-    await update_dataset_from_excel(config['DEFAULT']['apikey'])  
+    """
+    """
+        # Añadir datos en el google sheet
+        values = [list(val.values()) for val in client_mana];range_name = "C19:K10";valueInputOption = "USER_ENTERED"
+        background_tasks.add_task(google_spreadsheet.append, range_name, valueInputOption, values)
+        
+        # Hacer una copia del excel y comprovar datos duplicados
+        await update_dataset_from_excel(config['DEFAULT']['apikey'])  
 
-   # Parte que se encarga de estructurar y enviar el correo electronico
-    cantidad_clientes, email_estructurado = email_structure.format_email(mail_structure_dict)
-    email_subject = f"Tens {int(cantidad_clientes)} {'clients' if int(cantidad_clientes) > 1 else 'client'} {'nous' if int(cantidad_clientes) > 1 else 'nou'} a respondre"
+    # Parte que se encarga de estructurar y enviar el correo electronico
+        cantidad_clientes, email_estructurado = email_structure.format_email(mail_structure_dict)
+        email_subject = f"Tienes {int(cantidad_clientes)} {'clients' if int(cantidad_clientes) > 1 else 'client'} {'nuevos' if int(cantidad_clientes) > 1 else 'nou'} a responder"
 
-    _email_sender.send_email(receiver_email=config['EMAIL']['email_reciver'], subject=str(email_subject), message_body=email_estructurado)
+        _email_sender.send_email(receiver_email=config['EMAIL']['email_reciver'], subject=str(email_subject), message_body=email_estructurado)
 
-    if len(client_mana) > 0: 
-        return {"status": "success", "response": "Email enviado correctamente"} # "Los clientes han sido recividos, y email enviado correctamente"
-    else:
-        return {"status": "error", "response":"No has introducido ningún cliente en el cuerpo de la solicitud, mira el cuerpo de la solicitud"}
-
+        if len(client_mana) > 0: 
+            return {"status": "success", "response": "Email enviado correctamente"} # "Los clientes han sido recividos, y email enviado correctamente"
+        else:
+            return {"status": "error", "response":"No has introducido ningún cliente en el cuerpo de la solicitud, mira el cuerpo de la solicitud"}
+    """
 
 @app.get("/responder_cliente/", response_class=HTMLResponse, description="Página aparte que te sale para abrir una pestaña aparte para responder la solicitud", tags=["Manejo de Clientes"])
 async def client_html_response(request: Request, id: Optional[str] = ''):
