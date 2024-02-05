@@ -16,6 +16,11 @@ config = ConfigParser()
 config.read("conf.ini")
 api_keys = [config.get('DEFAULT','apikey')]
 
+
+def handle_pydantic_error():
+    """handle pydantic error so that the user can see their """
+    pass
+
 def get_api_key_(api_key_header: str = Security(api_key_header)) -> str:
     if api_key_header in api_keys:
         return api_key_header

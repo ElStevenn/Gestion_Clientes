@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import google.auth
+import logging
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from google.auth.transport.requests import Request
@@ -71,7 +72,7 @@ class Document_CRUD():
             try:
                 return func(*args, **kwargs)
             except HttpError as error:
-                print(f"An error occurred: {error}")
+                logging.error(f"An error occurred: {error}")
                 return error
         return wrapper
                        
@@ -85,9 +86,17 @@ class Document_CRUD():
         return None  # Or handle the case where the sheet name is not found
 
     @feature_decorator
-    def append(self, range_name, value_input_option, values):
+    def append(self, range_name, value_input_option, *data_dicts: dict):
         service = self.auth()
 
+        # Convert values into a readable list
+        values = []
+        for data_dict in data_dicts:
+            if isinstance(data_dict, dict):
+                values.append(list(data_dict.values()))
+            else:
+                pass
+    
         # Append data to the sheet
         body = {"values": values}
         append_result = service.spreadsheets().values().append(
@@ -105,11 +114,11 @@ class Document_CRUD():
         end_row_index = start_row_index + num_rows
 
         # Assuming you have a valid method to get the sheet ID
-        sheet_id = self.get_sheet_id("Your Sheet Name")  # Replace "Your Sheet Name" with the actual sheet name
+        sheet_id = self.get_sheet_id("Your Sheet Name")  
 
         # Call function to print the borders
         self.update_border_request(sheet_id, start_row_index, end_row_index, 2, 11)
-
+    
     
 
     def update_border_request(self, sheet_id, start_row_index, end_row_index, start_column_index, end_column_index, 
@@ -374,7 +383,7 @@ class Document_CRUD():
             spreadsheetId=self.Spreadsheet_ID,  # Ensure this is the correct spreadsheet ID
             body=body
         ).execute()
-        print(f"Cleared cell formatting: {response}")
+        logging.info(f"Cleared cell formatting: {response}")
 
     @feature_decorator
     def get_all_columns_name_and_status(self):

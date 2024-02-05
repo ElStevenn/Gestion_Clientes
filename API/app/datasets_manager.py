@@ -123,29 +123,31 @@ class DTManage_manager():
         await loop.run_in_executor(None, self._add_new_row_sync, row_data)
 
     def _add_new_row_sync(self, row_data: np.ndarray):
-        # Ensure row_data is a list with thir prespective lenght
-        if not isinstance(row_data, np.ndarray):
-            raise ValueError("The given data is not event an array list")
+        """
+            *THIS FUNCTION IS NOT CURRENTLY WORKING*
         
-        # Handle lenght error
-        query  = np.array(self.columns_names) != None
-        result = np.array(self.columns_names)[query]
-        if len(result) != len(row_data):
-            raise ValueError(f"Worng array lenght, the right lenght should be {len(result)}")
+        """
+        # Ensure row_data is a NumPy array
+        if not isinstance(row_data, np.ndarray):
+            raise ValueError("The given data is not even an array.")
 
-        """        
-        s
-        if missing_columns:
-            # Optionally handle missing columns: raise an error, add them, ignore, etc.
-            raise ValueError(f"Missing columns in the dataset: {missing_columns}")
+        # Eliminate dupped data
+        query  = np.array(self.columns_names) != None
+        real_columns = np.array(self.columns_names)[query]
+
+        # Handle length error
+        expected_length = len(real_columns)
+        if expected_length != row_data.size:
+            raise ValueError(f"Wrong array length, the correct length should be {expected_length}, but your length is {row_data.size}.")
 
         # Append the new row to the DataFrame
-        new_row = pd.DataFrame([row_data])  # Convert dict to DataFrame for appending
-        self.manage_dataset = pd.concat([self.manage_dataset, new_row], ignore_index=True)
+        new_row = pd.Series(zip(real_columns, row_data))
+        print(next(zip(real_columns, row_data)))
+        print(new_row)
+        # self.manage_dataset = self.manage_dataset._append(new_row, ignore_index=True)
 
-        # Save the updated DataFrame back to CSV
-        self.manage_dataset.to_csv(self.dataset_path, index=False)
-        """
+        # # Save the dataset
+        # self.manage_dataset.to_csv(self.dataset_path, index=False)
 
     async def delete_row(self, row_index):
         loop = asyncio.get_event_loop()
@@ -193,11 +195,11 @@ class DTManage_manager():
 
     def find_duplicate_rows_by_columns(self, data, column_indices, column_names):
         """
-        Identify rows in a numpy array that have duplicate values in the specified columns.
+            Identify rows in a numpy array that have duplicate values in the specified columns.
 
-        :param data: Numpy array of data
-        :param column_indices: List of indices of the columns to check for duplicate values
-        :return: String messages indicating which rows have the same values in the specified columns
+            :param data: Numpy array of data
+            :param column_indices: List of indices of the columns to check for duplicate values
+            :return: String messages indicating which rows have the same values in the specified columns
         """
         duplicate_messages = []
 
@@ -257,7 +259,7 @@ class DTManage_manager():
 async def main():
     DT_manager = DTManage_manager()
     np_values = np.array([
-        ['sd', 'dss', 'dss', 'sd', 'sd', 'sd', 'sd', 'sd', 'sd']
+        ['sd', 'dss', 'dss', 'sd', 'sd', 'sd', 'sd', 'sd', 'sd', 'iuyshd']
     ])
     # Try to add a new row into the dataset
     await DT_manager.add_new_row(np_values)

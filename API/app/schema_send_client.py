@@ -119,7 +119,7 @@ def map_dtype_python_type(dtype: str):
     else:
         return (str, ...)  # Default to string if the dtype is not recognized
 
-def create_dynamic_model():
+def create_client_model():
     with open(os.path.join('app', 'config', 'schema_client.json'), 'r') as f:
         column_data = json.load(f)
 
@@ -129,10 +129,18 @@ def create_dynamic_model():
         is_unique = col["is_unique"] == "True"
         fields[col["column_name"]] = (python_type, Field(default, unique=is_unique))
 
-    dynamic_model = create_model('DynamicModel', **fields)
-    return dynamic_model
+    dynamic_client_model = create_model('single_client', **fields)
+    return dynamic_client_model
 
-DynamicModel = create_dynamic_model()
+def create_dynamic_model():
+    single_client_schema = create_client_model()
+    class CreateClientsSchema(BaseModel):
+        clientes: list[single_client_schema]
+
+    return CreateClientsSchema
+
+ClientSchema = create_dynamic_model()
+
 
 if __name__ == "__main__":
-    print(DynamicModel.schema_json(indent=2))
+    print(ClientSchema.schema_json(indent=2))

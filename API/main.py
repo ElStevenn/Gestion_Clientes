@@ -8,14 +8,14 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from fastapi.openapi.docs import get_swagger_ui_html
+from fastapi_redis_session import deleteSession, getSession, getSessionId, getSessionStorage, setSession, SessionStorage
 # from fastapi_sessions.session_verifier import SessionVerifier
 from starlette.websockets import WebSocketDisconnect
 from app import schemas, dependencies, email_sender, email_estructure, datasets_manager, documentation_others, security, google_sheet_imp
 from app.security.backups import make_backup_s3
 from app.security.encryption import autenticate_user, create_access_token, authenticate_token
 from app.db_connection import crud
-from app.schema_send_client import DynamicModel, client_schema_definition, get_schema_columns
-from fastapi_redis_session import deleteSession, getSession, getSessionId, getSessionStorage, setSession, SessionStorage
+from app.schema_send_client import ClientSchema, client_schema_definition
 from typing import Optional, Any, List
 from configparser import ConfigParser
 import os, datetime, aiofiles, json, string
@@ -58,7 +58,6 @@ port = config['DEFAULT']['port']
 # Instancias de manejo de datos y servicios de email
 dataset_manager = datasets_manager.DTManage_manager() # Dataset para gestionar los tokens
 email_structure = email_estructure.ClienteEmailFormatter() # Formatear el texto
-_email_sender = email_sender.EmailSender("./conf.ini") # Classe para eviar emails 
 # aes_encrypter = security.AESEncryptionW_256(Path("app/keys/key_admin.txt")) # Classe para encriptar y desencriptar con AES 256
 
 # Google spreadsheet
@@ -137,50 +136,37 @@ async def redic_redocs(request: Request):
         return RedirectResponse('http://inutil.top/api_conf_login')
 
     
-@app.post("/enviar_cliente", description=documentation_others.enviar_cliente_doc, tags=["Manejo de Clientes"])
+@app.post("/v2/enviar_cliente", description=documentation_others.enviar_cliente_doc, tags=["Manejo de Clientes"])
 async def enviar_client( 
-    client_body: DynamicModel,
+    client_body: ClientSchema,
     background_tasks: BackgroundTasks,
-    api_key: str = Security(dependencies.get_api_key_),
-   
+    api_key: str = Security(dependencies.get_api_key_), 
 ):
 
-    data_dict = client_body.dict()
-    values_list = list(data_dict.values()) # Get all the values in a list
+    data_dict = dict(client_body.dict())
+    values_list = list(data_dict.get('clientes', None))
 
-    # Save the model in the dataset 
-    # await dataset_manager.add_new_row(*values_list)
+    # Create a backround task to send the email
+    background_tasks.add_task(email_estructure.new_client_send_email,values_list) if data_dict else None
 
-    return {"response": values_list, "type": str(type(data_dict))}
-    """
-        client_mana.append(row_body)
-        mail_structure_dict.append(row_body)
-    """
-    """
-        # Añadir datos en el google sheet
-        values = [list(val.values()) for val in client_mana];range_name = "C19:K10";valueInputOption = "USER_ENTERED"
-        background_tasks.add_task(google_spreadsheet.append, range_name, valueInputOption, values)
-        
-        # Hacer una copia del excel y comprovar datos duplicados
-        await update_dataset_from_excel(config['DEFAULT']['apikey'])  
+    # Add backround task and make a copy to csv
+    valueInputOption = "USER_ENTERED";range_name = "C9:K9"
+    background_tasks.add_task(google_spreadsheet.append, range_name, valueInputOption, *values_list)
+    
+    # Hacer una copia del excel y comprovar datos duplicados
+    await update_dataset_from_excel(config['DEFAULT']['apikey'])
+    
+    # Any error ocurred in the process, in theory is all right
+    return {"status": "success", "response": "Email enviado correctamente", "values": str(values_list)} 
 
-    # Parte que se encarga de estructurar y enviar el correo electronico
-        cantidad_clientes, email_estructurado = email_structure.format_email(mail_structure_dict)
-        email_subject = f"Tienes {int(cantidad_clientes)} {'clients' if int(cantidad_clientes) > 1 else 'client'} {'nuevos' if int(cantidad_clientes) > 1 else 'nou'} a responder"
 
-        _email_sender.send_email(receiver_email=config['EMAIL']['email_reciver'], subject=str(email_subject), message_body=email_estructurado)
-
-        if len(client_mana) > 0: 
-            return {"status": "success", "response": "Email enviado correctamente"} # "Los clientes han sido recividos, y email enviado correctamente"
-        else:
-            return {"status": "error", "response":"No has introducido ningún cliente en el cuerpo de la solicitud, mira el cuerpo de la solicitud"}
-    """
 
 @app.get("/responder_cliente/", response_class=HTMLResponse, description="Página aparte que te sale para abrir una pestaña aparte para responder la solicitud", tags=["Manejo de Clientes"])
 async def client_html_response(request: Request, id: Optional[str] = ''):
 
 
     return templates.TemplateResponse("client_camps_verify.html", {'request': request}) # Agregar más campos aquí 
+
 
 
 @app.get("/get_json_dataset", description="Este métodoes un metodo que se usaba antes para cargar los datos de los clientes en forma de json.", tags=["Gestor Dataset"])

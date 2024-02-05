@@ -2,7 +2,7 @@
 
 from configparser import ConfigParser
 from pathlib import Path
-
+from .email_sender import EmailSender
 
 class ClienteEmailFormatter:
     """
@@ -14,37 +14,37 @@ class ClienteEmailFormatter:
         self.server_ip = config['DEFAULT']['host']
         self.puerto = config['DEFAULT']['port']
 
-    def format_email(self, json_data):
+    def format_email(self, *json_data):
         numero_de_clientes = len(json_data)
-        email_body = f"<h2>Tens {numero_de_clientes} {'clients' if numero_de_clientes > 1 else 'client'} {'nous' if numero_de_clientes > 1 else 'nou'}:</h2>"
+        email_body = f"<h2>Tienes {numero_de_clientes} {'clientes' if numero_de_clientes > 1 else 'cliente'} {'nuevos' if numero_de_clientes > 1 else 'nuevo'}:</h2>"
+        email_subject = f"Tienes {numero_de_clientes} {'clienes' if numero_de_clientes > 1 else 'cliente'} a responder"
 
-        for cliente in json_data:
-            email_body += f"<div style='margin-bottom: 20px;'>{self._format_cliente_info(cliente)}</div>"
+        for single_client in json_data[0]: 
+            email_body += f"<div style='margin-bottom: 20px;'>{self._format_cliente_info(**single_client)}</div>"
             email_body += "<hr>"
 
-        return str(numero_de_clientes), self._add_email_template(email_body)
+        return email_subject, self._add_email_template(email_body)
 
-    def _format_cliente_info(self, cliente_info):
-        formatted_info = (
-            f"<p><strong>Nom:</strong> {cliente_info.get('nombre', 'N/A')}<br>"
-            f"<strong>Cognoms:</strong> {cliente_info.get('apellidos', 'N/A')}<br>"
-            f"<strong>Número de telèfon:</strong> {cliente_info.get('numero_telefono', 'N/A')}<br>"
-            f"<strong>Codi postal:</strong> {cliente_info.get('codigo_postal', 'N/A')}<br>"
-            f"<strong>Url Registro:</strong> <a href='{cliente_info.get('url_registro', 'N/A')}'>{cliente_info.get('url_registro', 'N/A')}</a><br>"
-        )
+    def _format_cliente_info(self, **client_info):
+        result = ""
 
-        informacion_adicional = cliente_info.get("informacion_adicional", {})
-        if informacion_adicional:
-            formatted_info += "<ul>"
-            for key, value in informacion_adicional.items():
-                key_formatted = key.replace("_", " ").capitalize()
-                formatted_info += f"<li><strong>{key_formatted}:</strong> {value}</li>"
-            formatted_info += "</ul>"
+        for key, value in client_info.items():
+            if isinstance(value, dict):  
+                result += "<ul>"
+                for k_, v_ in value.items():
+                    result += f"<li><strong>{k_}:</strong> {self._format_value(v_)}</li>"
+                result += "</ul>"
+            else:
+                result += f"<p><strong>{key}:</strong> {self._format_value(value)}<br>\n"
 
-        return formatted_info
+        return result
+
+    def _format_value(self, value):
+        if isinstance(value, dict):
+            return ''.join(f"<li><strong>{k}:</strong> {self._format_value(v)}</li>" for k, v in value.items())
+        return str(value)
 
     def _add_email_template(self, email_body):
-        # Se ha eliminado la etiqueta <script> para evitar problemas con los clientes de correo electrónico.
         return f"""
         <html>
             <head>
@@ -90,9 +90,13 @@ class ClienteEmailFormatter:
 
 
 
+def new_client_send_email(dict_data: dict):
+    _email_sender = EmailSender("./conf.ini") 
+    email_formatter = ClienteEmailFormatter()
 
+    subject, structed_email = email_formatter.format_email(dict_data)
 
-
+    _email_sender.send_email("sfukinguay@gmail.com", subject, structed_email)
 
 if __name__ == "__main__":
     
@@ -126,9 +130,7 @@ if __name__ == "__main__":
 
 
 
-    formatter = ClienteEmailFormatter()
-    cantidad_clientes, email_estructurado = formatter.format_email(json_data)
-    print(email_estructurado)
+    new_client_send_email(json_data)
 
 
 
