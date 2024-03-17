@@ -52,9 +52,11 @@
 
 
 
-### GET /code (OAuth Authentication - Authorization Code Flow)
+## GET /code (OAuth Authentication - Authorization Code Flow)
  Description: This endpoint handles the OAuth2 authorization code flow for API authentication. It's used to obtain an authorization code for further authentication.
 
-### POST /token (Create User Token)
+## POST /token (Create User Token)
  Description: This endpoint is used to create a secure user token for authentication.
  Request Body: Expects the user's credentials in the request body using OAuth2 password request form.
+
+ 
