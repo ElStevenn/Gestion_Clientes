@@ -57,6 +57,6 @@
 
 ## POST /token (Create User Token)
  Description: This endpoint is used to create a secure user token for authentication.
- Request Body: Expects the user's credentials in the request body using OAuth2 password request form.
+ Request Body: Expects the user's credentials in the request body using OAuth2 password request form
 
  
